@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Cost Tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- AUTH VIEW -->
+  <div id="auth-view" class="container auth-wrapper">
+    <div class="auth-card">
+      <h1 id="auth-title">Welcome Back</h1>
+      <p id="auth-desc">Log in securely to manage your daily expenses</p>
+
+      <div class="auth-tabs">
+        <button id="tab-login" class="tab-btn active">Sign In</button>
+        <button id="tab-signup" class="tab-btn">Sign Up</button>
+      </div>
+
+      <form id="auth-form">
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input type="email" id="email" required placeholder="you@example.com">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required placeholder="••••••••">
+        </div>
+
+        <button type="submit" id="auth-submit-btn" class="btn">Sign In</button>
+      </form>
+
+      <div id="auth-message" class="message hidden"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboard-view" class="container hidden">
+    <header>
+      <div class="logo-area">
+        <h2>Daily Costs</h2>
+      </div>
+      <div class="user-info">
+        <span id="user-email-display" class="user-email"></span>
+        <button id="logout-btn" class="btn btn-logout">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- Stats Summary -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Total Spent (All Time)</h3>
+        <div id="stat-total" class="amount">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <h3>This Month</h3>
+        <div id="stat-month" class="amount">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="dashboard-grid">
+      <!-- Add Cost Form -->
+      <div class="card">
+        <h3>Add Expense</h3>
+        <form id="cost-form">
+          <div class="form-group">
+            <label for="cost-date">Date</label>
+            <input type="date" id="cost-date" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cost-amount">Amount ($)</label>
+            <input type="number" id="cost-amount" step="0.01" min="0" required placeholder="20.00">
+          </div>
+
+          <div class="form-group">
+            <label for="cost-category">Category</label>
+            <select id="cost-category" required>
+              <option value="">Select category</option>
+              <option value="Meat">Meat & Groceries</option>
+              <option value="Food & Dining">Food & Dining</option>
+              <option value="Transport">Transport</option>
+              <option value="Utilities">Utilities & Bills</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cost-notes">Notes (Optional)</label>
+            <textarea id="cost-notes" rows="2" placeholder="e.g. 2kg of fresh beef"></textarea>
+          </div>
+
+          <button type="submit" class="btn">Add Expense</button>
+          <div id="cost-message" class="message hidden"></div>
+        </form>
+      </div>
+
+      <!-- Cost History -->
+      <div class="card">
+        <h3>Expense History</h3>
+        <div class="filter-bar">
+          <input type="text" id="search-filter" placeholder="Search category or notes...">
+          <select id="category-filter">
+            <option value="">All Categories</option>
+            <option value="Meat">Meat & Groceries</option>
+            <option value="Food & Dining">Food & Dining</option>
+            <option value="Transport">Transport</option>
+            <option value="Utilities">Utilities & Bills</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <ul id="cost-list" class="cost-list">
+          <li class="empty-state">Loading expenses...</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 Daily Cost Tracker. Securely powered by Supabase & GitHub Pages.</p>
+  </footer>
+
+  <!-- App Script -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
