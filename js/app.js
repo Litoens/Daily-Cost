@@ -56,17 +56,139 @@ tabSignup.addEventListener('click', () => {
   authMessage.classList.add('hidden');
 });
 
+// Password Reset DOM Elements
+const authCardMain = document.getElementById('auth-card-main');
+const forgotCard = document.getElementById('forgot-card');
+const resetPasswordCard = document.getElementById('reset-password-card');
+
+const forgotLink = document.getElementById('forgot-link');
+const backToLoginLink = document.getElementById('back-to-login-link');
+const forgotForm = document.getElementById('forgot-form');
+const forgotMessage = document.getElementById('forgot-message');
+
+const resetPasswordForm = document.getElementById('reset-password-form');
+const resetPasswordMessage = document.getElementById('reset-password-message');
+
+// Forgot Password Link Click
+forgotLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  authCardMain.classList.add('hidden');
+  forgotCard.classList.remove('hidden');
+  resetPasswordCard.classList.add('hidden');
+  forgotMessage.classList.add('hidden');
+  const loginEmail = document.getElementById('email').value.trim();
+  if (loginEmail) {
+    document.getElementById('forgot-email').value = loginEmail;
+  }
+});
+
+// Back to Login Link Click
+backToLoginLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  forgotCard.classList.add('hidden');
+  authCardMain.classList.remove('hidden');
+  resetPasswordCard.classList.add('hidden');
+  authMessage.classList.add('hidden');
+});
+
+// Forgot Password Form Submit
+forgotForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('forgot-email').value.trim();
+  forgotMessage.textContent = '';
+  forgotMessage.classList.add('hidden');
+
+  if (!isValidEmail(email)) {
+    showForgotMessage('Please enter a valid email address.', 'error');
+    return;
+  }
+
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+
+  if (error) {
+    showForgotMessage(error.message, 'error');
+  } else {
+    showForgotMessage('Password reset email sent! Please check your inbox for the reset link.', 'success');
+  }
+});
+
+function showForgotMessage(text, type) {
+  forgotMessage.textContent = text;
+  forgotMessage.className = `message ${type}`;
+}
+
+// Reset Password Form Submit
+resetPasswordForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const newPassword = document.getElementById('new-password').value;
+  const confirmPassword = document.getElementById('confirm-password').value;
+
+  resetPasswordMessage.textContent = '';
+  resetPasswordMessage.classList.add('hidden');
+
+  if (!isValidPassword(newPassword)) {
+    showResetPasswordMessage('Password must be 4 to 16 characters long and contain both letters and numbers.', 'error');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showResetPasswordMessage('Passwords do not match.', 'error');
+    return;
+  }
+
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword
+  });
+
+  if (error) {
+    showResetPasswordMessage(error.message, 'error');
+  } else {
+    showResetPasswordMessage('Password updated successfully! Redirecting...', 'success');
+    setTimeout(() => {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      resetPasswordCard.classList.add('hidden');
+      authCardMain.classList.remove('hidden');
+      authView.classList.remove('hidden');
+      showAuthMessage('Password updated successfully. Please sign in with your new password.', 'success');
+    }, 1500);
+  }
+});
+
+function showResetPasswordMessage(text, type) {
+  resetPasswordMessage.textContent = text;
+  resetPasswordMessage.className = `message ${type}`;
+}
+
 // Check Initial Session
 async function initSession() {
-  const { data: { session } } = await supabase.auth.getSession();
-  handleSession(session);
+  const isRecovery = window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery');
+  if (isRecovery) {
+    authCardMain.classList.add('hidden');
+    forgotCard.classList.add('hidden');
+    resetPasswordCard.classList.remove('hidden');
+  }
 
-  supabase.auth.onAuthStateChange((_event, session) => {
-    handleSession(session);
+  const { data: { session } } = await supabase.auth.getSession();
+  handleSession(session, isRecovery);
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      authCardMain.classList.add('hidden');
+      forgotCard.classList.add('hidden');
+      resetPasswordCard.classList.remove('hidden');
+    } else {
+      handleSession(session);
+    }
   });
 }
 
-function handleSession(session) {
+function handleSession(session, isRecovery = false) {
+  if (isRecovery || window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery')) {
+    return;
+  }
+
   currentUser = session?.user || null;
   if (currentUser) {
     authView.classList.add('hidden');
@@ -76,6 +198,9 @@ function handleSession(session) {
   } else {
     dashboardView.classList.add('hidden');
     authView.classList.remove('hidden');
+    authCardMain.classList.remove('hidden');
+    forgotCard.classList.add('hidden');
+    resetPasswordCard.classList.add('hidden');
     costsCache = [];
   }
 }
