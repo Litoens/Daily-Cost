@@ -22,6 +22,10 @@ A secure, modern daily cost tracking web application powered by **Supabase** (Po
 4. Go to **Settings > API** in your Supabase dashboard and copy:
    - **Project URL**
    - **anon / public key**
+5. **Configure Auth Redirect URLs:**
+   - Go to **Authentication > URL Configuration** in your Supabase dashboard.
+   - Set **Site URL** to your production URL (e.g., `https://litoens.github.io/Daily-Cost/`) or `http://localhost:8000` during local testing.
+   - Under **Redirect URLs**, add your allowed app URLs (e.g., `https://litoens.github.io/Daily-Cost/` and `http://localhost:8000/` or `http://localhost:3000/`). This ensures password reset email links redirect to your live app correctly.
 
 ### 2. Configure Your App
 Open `js/supabaseClient.js` and replace the placeholder values with your actual Supabase credentials:

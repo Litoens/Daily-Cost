@@ -163,6 +163,23 @@ function showResetPasswordMessage(text, type) {
 
 // Check Initial Session
 async function initSession() {
+  const params = new URLSearchParams(window.location.search);
+  const tokenHash = params.get('token_hash');
+  const type = params.get('type');
+
+  if (tokenHash && type === 'recovery') {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'recovery'
+    });
+    if (!error) {
+      authCardMain.classList.add('hidden');
+      forgotCard.classList.add('hidden');
+      resetPasswordCard.classList.remove('hidden');
+      return;
+    }
+  }
+
   const isRecovery = window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery');
   if (isRecovery) {
     authCardMain.classList.add('hidden');
