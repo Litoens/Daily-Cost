@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-11-01
+
+### Added
+- **Documentation:**
+  - Added Troubleshooting section in `README.md` covering Supabase email rate limits and how to manage them.
+
 ## [1.1.1] - 2026-11-01
 
 ### Fixed

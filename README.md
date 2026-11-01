@@ -59,3 +59,11 @@ Then open `http://localhost:8000` in your browser.
    - Under **Build and deployment**, select `Deploy from a branch`.
    - Choose branch `main` and folder `/ (root)`, then click **Save**.
 5. Your application will be live at `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`!
+
+---
+
+## Troubleshooting
+
+### Email Rate Limits ("Exceeded Rate Limit")
+Supabase has built-in email rate limits to prevent abuse (especially on the free tier), which can trigger an error if you request password reset emails too frequently for the same address.
+- **Solution:** Wait for the cooldown period (usually 1 hour) or adjust the rate limits in your Supabase Dashboard under **Authentication > Rate Limits**. Alternatively, use a different test email address while developing.
