@@ -163,6 +163,21 @@ function showResetPasswordMessage(text, type) {
 
 // Check Initial Session
 async function initSession() {
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const errorCode = hashParams.get('error_code');
+  const errorDesc = hashParams.get('error_description');
+  const errorParam = hashParams.get('error');
+
+  if (errorCode || errorParam) {
+    authCardMain.classList.remove('hidden');
+    forgotCard.classList.add('hidden');
+    resetPasswordCard.classList.add('hidden');
+    const decodedDesc = errorDesc ? decodeURIComponent(errorDesc.replace(/\+/g, ' ')) : 'Password reset link is invalid or has expired.';
+    showAuthMessage(`Reset link error: ${decodedDesc} Please make sure your Supabase Site URL matches https://litoens.github.io/Daily-Cost/ and request a new reset link.`, 'error');
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const tokenHash = params.get('token_hash');
   const type = params.get('type');

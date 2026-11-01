@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-11-01
+
+### Fixed
+- **Password Reset Error Handling:**
+  - Added URL hash error parsing (`error_code`, `otp_expired`) in `initSession` to catch invalid or expired reset links and gracefully show an informative error message while returning to the login view.
+
 ## [1.1.0] - 2026-11-01
 
 ### Added
