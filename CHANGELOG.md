@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-11-06
+
+### Changed
+- **CD:** deploy now runs from the CI/CD workflow and waits for the checks (job `deploy` needs `check`). Requires Settings > Pages > Source = GitHub Actions. Only `index.html`, `css/` and `js/` are published.
+
 ## [1.3.1] - 2026-11-06
 
 ### Added
