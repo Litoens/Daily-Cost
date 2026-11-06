@@ -332,30 +332,38 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { toggleMenu(false); profileBtn.focus(); }
 });
 
-function showExpenses() {
+const passwordView = document.getElementById('password-view');
+
+// Show exactly one of the three dashboard pages.
+function showPage(page) {
   toggleMenu(false);
-  accountView.classList.add('hidden');
-  expensesView.classList.remove('hidden');
-  statsGrid.classList.remove('hidden');
+  expensesView.classList.toggle('hidden', page !== 'expenses');
+  statsGrid.classList.toggle('hidden', page !== 'expenses');
+  accountView.classList.toggle('hidden', page !== 'account');
+  passwordView.classList.toggle('hidden', page !== 'password');
 }
 
-function showAccount(focusPassword) {
-  toggleMenu(false);
+function showExpenses() { showPage('expenses'); }
+
+function showAccount() {
   const fmt = (d) => d ? new Date(d).toLocaleString() : '-';
   document.getElementById('account-email').textContent = currentUser.email;
   document.getElementById('account-created').textContent = fmt(currentUser.created_at);
   document.getElementById('account-last-signin').textContent = fmt(currentUser.last_sign_in_at);
-  changePasswordForm.reset();
-  changePasswordMessage.classList.add('hidden');
-  expensesView.classList.add('hidden');
-  statsGrid.classList.add('hidden');
-  accountView.classList.remove('hidden');
-  if (focusPassword) document.getElementById('current-password').focus();
+  showPage('account');
 }
 
-document.getElementById('menu-account').addEventListener('click', () => showAccount(false));
-document.getElementById('menu-reset').addEventListener('click', () => showAccount(true));
+function showPassword() {
+  changePasswordForm.reset();
+  changePasswordMessage.classList.add('hidden');
+  showPage('password');
+  document.getElementById('current-password').focus();
+}
+
+document.getElementById('menu-account').addEventListener('click', showAccount);
+document.getElementById('menu-reset').addEventListener('click', showPassword);
 document.getElementById('account-back').addEventListener('click', showExpenses);
+document.getElementById('password-back').addEventListener('click', showExpenses);
 
 function showChangePasswordMessage(text, type) {
   changePasswordMessage.textContent = text;
