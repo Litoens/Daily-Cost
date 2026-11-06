@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T00:00:00Z",
+  "title": "Design System: Daily Cost Tracker",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "primary", "displayName": "Envelope Ink", "canonical": "#12261f", "tonalRamp": ["#0a1511","#12261f","#1c3a30","#31574a","#55796b","#85a093","#b9cbc1","#e3ece6"] },
+      "accent": { "role": "primary", "displayName": "Chartreuse Stamp", "canonical": "#c8f23a", "tonalRamp": ["#2f3d05","#516607","#7a9a0b","#a2cc17","#c8f23a","#d8f66f","#e8fa9f","#f5fdd4"] },
+      "ground": { "role": "neutral", "displayName": "Pale Ground", "canonical": "#eef1ec", "tonalRamp": ["#2a302b","#4a544c","#6e7a71","#95a098","#b9c2bb","#d3dad4","#eef1ec","#f8faf7"] },
+      "cat-meat": { "role": "secondary", "displayName": "Tomato", "canonical": "#e4572e", "tonalRamp": ["#4a1507","#7d2510","#b13a1b","#e4572e","#ec7d5b","#f2a58b","#f8cfc1","#fcebe5"] },
+      "cat-food": { "role": "secondary", "displayName": "Amber", "canonical": "#f2a900", "tonalRamp": ["#4a3200","#7a5400","#b07c00","#f2a900","#f5be3d","#f8d374","#fbe6a8","#fdf5dc"] },
+      "cat-transport": { "role": "secondary", "displayName": "Blue", "canonical": "#2e86de", "tonalRamp": ["#0a2646","#10407a","#1a60b0","#2e86de","#5fa2e6","#8fbdee","#bfd9f6","#e5f0fb"] },
+      "cat-utilities": { "role": "secondary", "displayName": "Violet", "canonical": "#7b5ea7", "tonalRamp": ["#221a31","#3d2f55","#5c4580","#7b5ea7","#9a82bd","#b9a7d2","#d8cde6","#efeaf5"] },
+      "cat-fun": { "role": "secondary", "displayName": "Pink", "canonical": "#e0407b", "tonalRamp": ["#470a20","#7a1639","#b02a5c","#e0407b","#e8699a","#ef93b7","#f6bdd3","#fbe5ee"] },
+      "cat-other": { "role": "secondary", "displayName": "Slate", "canonical": "#6b7a74", "tonalRamp": ["#1b2320","#313c38","#4a5853","#6b7a74","#8a9791","#aab5b0","#cdd5d1","#e9edeb"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The Total and This Month figures." },
+      "headline": { "displayName": "Headline", "purpose": "Auth card titles." },
+      "title": { "displayName": "Title", "purpose": "Card headings and row amounts." },
+      "body": { "displayName": "Body", "purpose": "Inputs and general copy." },
+      "label": { "displayName": "Label", "purpose": "Field labels, stat captions, dates, notes." }
+    },
+    "shadows": [
+      { "name": "card-lift", "value": "0 10px 24px -14px rgba(18, 38, 31, 0.3)", "purpose": "Soft low shadow under the add card (auth card: -12px spread, 0.28 alpha)." },
+      { "name": "field-focus-ring", "value": "0 0 0 3px rgba(28, 109, 208, 0.28)", "purpose": "Focused fields." }
+    ],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Auth card rise-in (0.5s) and button press." },
+      { "name": "state", "value": "0.15s", "purpose": "Hover and focus colour transitions; all disabled under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "narrow", "value": "480px" },
+      { "name": "stack", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single chartreuse action of a view.",
+      "html": "<button class=\"ds-btn-primary\">Add Expense</button>",
+      "css": ".ds-btn-primary { width: 100%; padding: 0.75rem 1.25rem; background: var(--accent, #c8f23a); color: var(--ink, #12261f); border: 1px solid var(--ink, #12261f); border-radius: 4px; font: inherit; font-weight: 700; cursor: pointer; transition: background 0.15s; } .ds-btn-primary:hover { background: #b6e01f; } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 3px solid #1c6dd0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Delete Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Borderless red text action on each expense row.",
+      "html": "<button class=\"ds-btn-danger\">Delete</button>",
+      "css": ".ds-btn-danger { padding: 0.3rem 0.7rem; background: transparent; color: #b3261e; border: 1px solid transparent; border-radius: 4px; font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer; } .ds-btn-danger:hover { background: #fbe4e1; } .ds-btn-danger:focus-visible { outline: 3px solid #1c6dd0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "White field with hairline border and blue focus ring.",
+      "html": "<label class=\"ds-label\" for=\"ds-amt\">Amount ($)</label><input class=\"ds-input\" id=\"ds-amt\" placeholder=\"20.00\">",
+      "css": ".ds-label { display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.35rem; } .ds-input { width: 100%; padding: 0.65rem 0.8rem; border: 1px solid #8fa196; border-radius: 4px; font: inherit; color: #12261f; background: #fff; transition: border-color 0.15s, box-shadow 0.15s; } .ds-input:hover { border-color: #12261f; } .ds-input:focus { outline: none; border-color: #1c6dd0; box-shadow: 0 0 0 3px rgba(28, 109, 208, 0.28); }"
+    },
+    {
+      "name": "Auth Tabs",
+      "kind": "nav",
+      "refersTo": "button-signout",
+      "description": "Sign In / Sign Up tabs with ink underline on the active one.",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-tab active\">Sign In</button><button class=\"ds-tab\">Sign Up</button></div>",
+      "css": ".ds-tabs { display: flex; border-bottom: 1px solid #cdd6cf; } .ds-tab { flex: 1; padding: 0.7rem; background: transparent; border: none; border-bottom: 3px solid transparent; margin-bottom: -1px; font: inherit; font-weight: 600; color: #4a5c54; cursor: pointer; } .ds-tab:hover { color: #12261f; } .ds-tab.active { color: #12261f; border-bottom-color: #12261f; } .ds-tab:focus-visible { outline: 3px solid #1c6dd0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Add Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White card with the category top rule and soft lift.",
+      "html": "<div class=\"ds-card\"><h2>Add Expense</h2><p>Fields here</p></div>",
+      "css": ".ds-card { background: #fff; border: 1px solid #cdd6cf; border-top: 4px solid #e4572e; border-radius: 4px; padding: 1.25rem; box-shadow: 0 10px 24px -14px rgba(18, 38, 31, 0.3); } .ds-card h2 { font-size: 1.0625rem; font-weight: 700; margin-bottom: 1rem; }"
+    },
+    {
+      "name": "Expense Row",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Category dot, name, date, heavy amount.",
+      "html": "<div class=\"ds-row\"><div><div class=\"ds-cat\">Transport</div><div class=\"ds-date\">2026-11-05</div></div><div class=\"ds-amt\">$12.50</div></div>",
+      "css": ".ds-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.8rem 0.25rem; border-bottom: 1px solid #cdd6cf; font-variant-numeric: tabular-nums; } .ds-row:hover { background: #eef1ec; } .ds-cat { display: flex; align-items: center; gap: 0.55rem; font-weight: 700; } .ds-cat::before { content: ''; width: 0.7rem; height: 0.7rem; border-radius: 2px; background: #2e86de; } .ds-date { font-size: 0.8125rem; color: #4a5c54; padding-left: 1.25rem; } .ds-amt { font-weight: 800; font-size: 1.0625rem; }"
+    },
+    {
+      "name": "Category Strip",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Six-segment envelope strip on the band edge and auth card top.",
+      "html": "<div class=\"ds-strip\"></div>",
+      "css": ".ds-strip { height: 6px; background: linear-gradient(90deg, #e4572e 0 16.66%, #f2a900 0 33.33%, #2e86de 0 50%, #7b5ea7 0 66.66%, #e0407b 0 83.33%, #6b7a74 0); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Cash Envelope",
+    "overview": "Money is filed, not decorated. Six categories are six coloured envelopes; the colour is the filing system and appears only where a row or form needs to say which envelope it belongs to. Everything else is deep envelope-green ink on a cool pale ground, flat and hairline-ruled, with exactly one loud thing per screen: the chartreuse action.\n\nThe dashboard is an ink band (name, account, two large figures) closed by a six-segment category strip, over a two-column working area: add-expense form left, history right. Auth is a single centred card carrying the same strip across its top edge. Density is calm and compact; this is a tool used in seconds, right after spending.",
+    "keyCharacteristics": [
+      "Ink-green shell, pale ground, white working cards.",
+      "One chartreuse primary action; six category hues used only as dots, a strip, and the form's top rule.",
+      "Archivo throughout, tabular numerals everywhere, widened (112%) for the big figures and card titles.",
+      "Flat and hairline-ruled; 4px corners; a single soft shadow on the add card and the auth card."
+    ],
+    "rules": [
+      { "name": "The Envelope Rule", "body": "Category hues mark category and nothing else: a dot, the strip, the form's top rule. Never a button, link, or status colour.", "section": "colors" },
+      { "name": "The One Stamp Rule", "body": "Chartreuse belongs to the single primary action of a view; it is never used as a background field or decoration.", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "Every number sits in tabular figures so amounts align down the list.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat; no shadow on history cards, rows, or buttons.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use the six category hues only as dots, the strip, and the add card's top rule.",
+      "Do keep chartreuse for the single primary action of a view.",
+      "Do set every figure in tabular numerals; widen (112%) only large figures and card titles.",
+      "Do keep surfaces flat with 1px `line` borders and 4px corners.",
+      "Do keep a 3px focus-blue outline on all interactive elements."
+    ],
+    "donts": [
+      "Don't return to white-cards-and-indigo-buttons SaaS styling or Inter (the old look, an anti-reference).",
+      "Don't colour buttons, links, or messages with category hues.",
+      "Don't add shadows to rows, buttons, or history cards."
+    ]
+  }
+}

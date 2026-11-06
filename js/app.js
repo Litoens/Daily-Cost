@@ -33,6 +33,10 @@ let recoveryMode = /type=recovery/.test(window.location.hash + window.location.s
 // Set default date to today in cost form
 costDateInput.valueAsDate = new Date();
 
+// Tint the add-expense card with the chosen category's colour.
+const costCard = costForm.closest('.card');
+costCategoryInput.addEventListener('change', () => { costCard.dataset.cat = costCategoryInput.value; });
+
 // Auth DOM Elements
 const authTitle = document.getElementById('auth-title');
 const authDesc = document.getElementById('auth-desc');
@@ -233,6 +237,7 @@ function handleSession(session) {
     authView.classList.add('hidden');
     dashboardView.classList.remove('hidden');
     userEmailDisplay.textContent = currentUser.email;
+    userEmailDisplay.title = currentUser.email;
     fetchCosts();
   } else {
     dashboardView.classList.add('hidden');
@@ -346,6 +351,7 @@ costForm.addEventListener('submit', async (e) => {
   } else {
     showCostMessage('Expense added successfully!', 'success');
     costForm.reset();
+    delete costCard.dataset.cat;
     costDateInput.valueAsDate = new Date();
     fetchCosts();
     setTimeout(() => costMessage.classList.add('hidden'), 3000);
@@ -406,7 +412,7 @@ function renderCosts() {
   }
 
   costList.innerHTML = filtered.map(item => `
-    <li class="cost-item">
+    <li class="cost-item" data-cat="${escapeHtml(item.category)}">
       <div class="cost-details">
         <div class="cost-cat">${escapeHtml(item.category)}</div>
         <div class="cost-date">${item.date}</div>

@@ -1,0 +1,5 @@
+﻿# impeccable runtime state (shared: PRODUCT.md, DESIGN.md, .impeccable/surfaces, design.json)
+.impeccable/config.local.json
+.impeccable/questions/
+.impeccable/review/
+.claude/
