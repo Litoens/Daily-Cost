@@ -544,3 +544,6 @@ function escapeHtml(str) {
 
 // Initialize on load
 initSession();
+
+// gate test
+void document.getElementById('gate-test-missing');
