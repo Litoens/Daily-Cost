@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-11-06
+
+### Changed
+- **Full visual redesign ("cash envelope" look)** across sign in/up, forgot password, set new password and the dashboard:
+  - Deep green header band with the two totals, a six-colour category strip, and a single chartreuse primary action.
+  - Archivo typeface (tabular numerals, wider cut for totals and the sign-in heading).
+  - Each expense row shows its category colour; the Add Expense card gets a top bar in the selected category's colour.
+  - Mobile: filter bar stacks on narrow screens, larger Delete tap targets on touch devices.
+  - Page structure: `<h1>` brand heading, `<h2>` card titles; signed-in email shown on hover/title.
+  - Behaviour, element ids and copy are unchanged; `js/app.js` only adds a `data-cat` attribute on rows and the card tint.
+
+### Added
+- `PRODUCT.md`, `DESIGN.md` and `.impeccable/` design context files, plus `.gitignore` entries for local tooling state.
+
 ## [1.1.3] - 2026-11-06
 
 ### Fixed
