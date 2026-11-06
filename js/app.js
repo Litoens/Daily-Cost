@@ -238,8 +238,10 @@ function handleSession(session) {
     dashboardView.classList.remove('hidden');
     userEmailDisplay.textContent = currentUser.email;
     userEmailDisplay.title = currentUser.email;
+    document.getElementById('profile-initial').textContent = currentUser.email[0].toUpperCase();
     fetchCosts();
   } else {
+    showExpenses();
     dashboardView.classList.add('hidden');
     authView.classList.remove('hidden');
     authCardMain.classList.remove('hidden');
@@ -305,6 +307,103 @@ function showAuthMessage(text, type) {
 // Logout
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
+});
+
+// Profile menu
+const profileBtn = document.getElementById('profile-btn');
+const profileMenu = document.getElementById('profile-menu');
+const expensesView = document.getElementById('expenses-view');
+const accountView = document.getElementById('account-view');
+const statsGrid = document.getElementById('stats-grid');
+const changePasswordForm = document.getElementById('change-password-form');
+const changePasswordMessage = document.getElementById('change-password-message');
+
+function toggleMenu(open) {
+  profileMenu.classList.toggle('hidden', !open);
+  profileBtn.setAttribute('aria-expanded', String(open));
+}
+
+profileBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleMenu(profileMenu.classList.contains('hidden'));
+});
+document.addEventListener('click', () => toggleMenu(false));
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { toggleMenu(false); profileBtn.focus(); }
+});
+
+function showExpenses() {
+  toggleMenu(false);
+  accountView.classList.add('hidden');
+  expensesView.classList.remove('hidden');
+  statsGrid.classList.remove('hidden');
+}
+
+function showAccount(focusPassword) {
+  toggleMenu(false);
+  const fmt = (d) => d ? new Date(d).toLocaleString() : '-';
+  document.getElementById('account-email').textContent = currentUser.email;
+  document.getElementById('account-created').textContent = fmt(currentUser.created_at);
+  document.getElementById('account-last-signin').textContent = fmt(currentUser.last_sign_in_at);
+  changePasswordForm.reset();
+  changePasswordMessage.classList.add('hidden');
+  expensesView.classList.add('hidden');
+  statsGrid.classList.add('hidden');
+  accountView.classList.remove('hidden');
+  if (focusPassword) document.getElementById('current-password').focus();
+}
+
+document.getElementById('menu-account').addEventListener('click', () => showAccount(false));
+document.getElementById('menu-reset').addEventListener('click', () => showAccount(true));
+document.getElementById('account-back').addEventListener('click', showExpenses);
+
+function showChangePasswordMessage(text, type) {
+  changePasswordMessage.textContent = text;
+  changePasswordMessage.className = `message ${type}`;
+}
+
+// Change password: re-verify the current password, then update and sign out other devices.
+changePasswordForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const current = document.getElementById('current-password').value;
+  const next = document.getElementById('account-new-password').value;
+  const confirm = document.getElementById('account-confirm-password').value;
+
+  if (!isValidPassword(next)) {
+    showChangePasswordMessage('New password must be 4 to 16 characters long and contain both letters and numbers.', 'error');
+    return;
+  }
+  if (next !== confirm) {
+    showChangePasswordMessage('New passwords do not match.', 'error');
+    return;
+  }
+  if (next === current) {
+    showChangePasswordMessage('New password must be different from the current one.', 'error');
+    return;
+  }
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: current });
+  if (verifyError) {
+    showChangePasswordMessage('Current password is incorrect.', 'error');
+    return;
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) {
+    showChangePasswordMessage(error.message, 'error');
+    return;
+  }
+  await supabase.auth.signOut({ scope: 'others' });
+  changePasswordForm.reset();
+  showChangePasswordMessage('Password updated. Other devices have been signed out.', 'success');
+});
+
+// Forgot the current password: reuse the email reset flow.
+document.getElementById('send-reset-link').addEventListener('click', async () => {
+  const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  showChangePasswordMessage(error ? error.message : `Reset link sent to ${currentUser.email}. Check your inbox.`, error ? 'error' : 'success');
 });
 
 // Fetch Costs

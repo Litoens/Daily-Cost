@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-11-06
+
+### Added
+- **Profile menu:** round profile icon (email initial) in the top right with Account, Reset password and Sign Out. Sign Out moved into this menu.
+- **Account page:** shows email, member-since date and last sign-in; "Back to expenses" returns to the dashboard.
+- **In-app password reset:** current password is re-verified, new password is validated (4-16 letters and numbers, must differ from current and match confirmation), and other devices are signed out on success.
+- "Email me a reset link" fallback on the account page for a forgotten current password.
+
 ## [1.2.0] - 2026-11-06
 
 ### Changed

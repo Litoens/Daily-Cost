@@ -97,13 +97,20 @@
             <h1>Daily Costs</h1>
           </div>
           <div class="user-info">
-            <span id="user-email-display" class="user-email" title=""></span>
-            <button id="logout-btn" class="btn btn-logout">Sign Out</button>
+            <div class="profile">
+              <button id="profile-btn" class="profile-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu" aria-label="Account menu"><span id="profile-initial" aria-hidden="true"></span></button>
+              <div id="profile-menu" class="profile-menu hidden" role="menu">
+                <span id="user-email-display" class="user-email" title=""></span>
+                <button id="menu-account" class="menu-item" role="menuitem">Account</button>
+                <button id="menu-reset" class="menu-item" role="menuitem">Reset password</button>
+                <button id="logout-btn" class="menu-item" role="menuitem">Sign Out</button>
+              </div>
+            </div>
           </div>
         </header>
 
         <!-- Stats Summary -->
-        <div class="stats-grid">
+        <div id="stats-grid" class="stats-grid">
           <div class="stat-card">
             <h2>Total Spent (All Time)</h2>
             <div id="stat-total" class="amount">$0.00</div>
@@ -117,7 +124,7 @@
     </div>
 
     <!-- Main Workspace -->
-    <main class="wrap dashboard-grid">
+    <main id="expenses-view" class="wrap dashboard-grid">
       <!-- Add Cost Form -->
       <div class="card">
         <h2>Add Expense</h2>
@@ -174,6 +181,43 @@
         <ul id="cost-list" class="cost-list">
           <li class="empty-state">Loading expenses...</li>
         </ul>
+      </div>
+    </main>
+
+    <!-- Account page -->
+    <main id="account-view" class="wrap account-grid hidden">
+      <div class="account-head">
+        <button id="account-back" class="text-link link-btn">&larr; Back to expenses</button>
+      </div>
+
+      <div class="card">
+        <h2>Account</h2>
+        <dl class="account-info">
+          <dt>Email</dt><dd id="account-email"></dd>
+          <dt>Member since</dt><dd id="account-created"></dd>
+          <dt>Last sign-in</dt><dd id="account-last-signin"></dd>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Reset password</h2>
+        <form id="change-password-form">
+          <div class="form-group">
+            <label for="current-password">Current password</label>
+            <input type="password" id="current-password" required autocomplete="current-password">
+          </div>
+          <div class="form-group">
+            <label for="account-new-password">New password</label>
+            <input type="password" id="account-new-password" required autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="account-confirm-password">Confirm new password</label>
+            <input type="password" id="account-confirm-password" required autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn">Update Password</button>
+        </form>
+        <div id="change-password-message" class="message hidden"></div>
+        <p class="account-note">Forgot your current password? <button id="send-reset-link" class="text-link link-btn">Email me a reset link</button></p>
       </div>
     </main>
   </div>
