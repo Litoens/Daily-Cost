@@ -1,11 +1,11 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
 ## [1.3.1] - 2026-11-06
 
 ### Added
-- **CI:** GitHub Actions workflow (.github/workflows/ci.yml) runs JS syntax checks and 	ests/check.mjs (every id used by pp.js exists in index.html, no duplicate ids) on every push and pull request.
+- **CI:** GitHub Actions workflow (`.github/workflows/ci.yml`) runs JS syntax checks and `tests/check.mjs` (every id used by `app.js` exists in `index.html`, no duplicate ids) on every push and pull request.
 
 ### Changed
 - Account info and password reset are now separate pages.
