@@ -27,6 +27,8 @@ const categoryFilter = document.getElementById('category-filter');
 let isSignUpMode = false;
 let currentUser = null;
 let costsCache = [];
+// Set before anything else so the recovery session is never mistaken for a login.
+let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
 
 // Set default date to today in cost form
 costDateInput.valueAsDate = new Date();
@@ -146,6 +148,8 @@ resetPasswordForm.addEventListener('submit', async (e) => {
     showResetPasswordMessage(error.message, 'error');
   } else {
     showResetPasswordMessage('Password updated successfully! Redirecting...', 'success');
+    recoveryMode = false;
+    await supabase.auth.signOut(); // force a fresh sign-in with the new password
     setTimeout(() => {
       window.history.replaceState({}, document.title, window.location.pathname);
       resetPasswordCard.classList.add('hidden');
@@ -183,43 +187,46 @@ async function initSession() {
   const type = params.get('type');
 
   if (tokenHash && type === 'recovery') {
-    const { data, error } = await supabase.auth.verifyOtp({
+    recoveryMode = true;
+    const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: 'recovery'
     });
     if (!error) {
-      authCardMain.classList.add('hidden');
-      forgotCard.classList.add('hidden');
-      resetPasswordCard.classList.remove('hidden');
+      showResetCard();
       return;
     }
+    recoveryMode = false;
   }
 
-  const isRecovery = window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery');
-  if (isRecovery) {
-    authCardMain.classList.add('hidden');
-    forgotCard.classList.add('hidden');
-    resetPasswordCard.classList.remove('hidden');
-  }
+  if (recoveryMode) showResetCard();
 
   const { data: { session } } = await supabase.auth.getSession();
-  handleSession(session, isRecovery);
-
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      authCardMain.classList.add('hidden');
-      forgotCard.classList.add('hidden');
-      resetPasswordCard.classList.remove('hidden');
-    } else {
-      handleSession(session);
-    }
-  });
+  handleSession(session);
 }
 
-function handleSession(session, isRecovery = false) {
-  if (isRecovery || window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery')) {
-    return;
+function showResetCard() {
+  recoveryMode = true;
+  authView.classList.remove('hidden');
+  dashboardView.classList.add('hidden');
+  authCardMain.classList.add('hidden');
+  forgotCard.classList.add('hidden');
+  resetPasswordCard.classList.remove('hidden');
+}
+
+// Registered synchronously at load: the client consumes the recovery link and fires
+// PASSWORD_RECOVERY before initSession's awaits finish, so a late listener misses it.
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    showResetCard();
+  } else {
+    handleSession(session);
   }
+});
+
+function handleSession(session) {
+  // The recovery link creates a real session; don't treat it as a login until the password is reset.
+  if (recoveryMode) return;
 
   currentUser = session?.user || null;
   if (currentUser) {

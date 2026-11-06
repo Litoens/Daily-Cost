@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.3] - 2026-11-06
+
+### Fixed
+- **Password Reset Link Logged User In:**
+  - Registered `onAuthStateChange` at load so the `PASSWORD_RECOVERY` event is no longer missed.
+  - Added `recoveryMode` so the recovery session doesn't open the dashboard; the "Set New Password" form shows instead.
+  - User is signed out after updating the password and must sign in with the new one.
+
 ## [1.1.2] - 2026-11-01
 
 ### Added
