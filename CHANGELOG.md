@@ -1,6 +1,14 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [1.3.1] - 2026-11-06
+
+### Added
+- **CI:** GitHub Actions workflow (.github/workflows/ci.yml) runs JS syntax checks and 	ests/check.mjs (every id used by pp.js exists in index.html, no duplicate ids) on every push and pull request.
+
+### Changed
+- Account info and password reset are now separate pages.
 
 ## [1.3.0] - 2026-11-06
 
@@ -66,3 +74,5 @@ All notable changes to this project will be documented in this file.
   - PostgreSQL database schema with Row Level Security (RLS) policies (`schema.sql`).
   - Expense logging, filtering by search and category, summary stats (Total spent & Monthly spent).
   - GitHub Pages deployment support.
+
+
