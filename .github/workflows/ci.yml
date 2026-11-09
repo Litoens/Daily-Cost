@@ -21,6 +21,8 @@ jobs:
         run: for f in js/*.js tests/*.mjs; do node --check "$f"; done
       - name: HTML and id wiring
         run: node tests/check.mjs
+      - name: Unit tests
+        run: node --test tests/*.test.mjs
 
   deploy:
     # Runs only on main, and only if the checks above passed.
