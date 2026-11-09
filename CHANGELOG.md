@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Spanish translation and language switcher (EN | ES)** on the sign-in screen and in the dashboard header. The choice is remembered in the browser; first visit follows the browser language. Texts live in `js/i18n.js`; CI checks that both languages have the same keys. Supabase's own error messages remain in English.
+- **Spend-by-category donut chart** between the add-expense form and the history; the add-expense panel is now the most prominent.
+
 ## [1.3.2] - 2026-11-06
 
 ### Changed

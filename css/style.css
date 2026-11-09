@@ -513,3 +513,32 @@ footer {
 .account-info dd { font-weight: 600; overflow-wrap: anywhere; }
 
 .account-note { margin-top: 1.25rem; font-size: 0.875rem; color: var(--text-muted); }
+
+/* ---------- Language switcher ---------- */
+.lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.lang-switch button {
+  padding: 0.35rem 0.65rem;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lang-switch button + button { border-left: 1px solid var(--line); }
+.lang-switch button:hover { color: var(--ink); background: var(--ground); }
+.lang-switch button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.lang-switch button:focus-visible { outline-offset: -3px; }
+@media (pointer: coarse) { .lang-switch button { min-height: 44px; min-width: 44px; } }
+
+.auth-wrapper { position: relative; }
+.auth-wrapper > .lang-switch { position: absolute; top: 1rem; right: 1rem; }
+.band .lang-switch { background: transparent; border-color: var(--on-ink-muted); }
+.band .lang-switch button { color: var(--on-ink-muted); }
+.band .lang-switch button + button { border-left-color: var(--on-ink-muted); }
+.band .lang-switch button:hover { background: var(--ink-2); color: var(--on-ink); }
+.band .lang-switch button[aria-pressed="true"] { background: var(--accent); color: var(--ink); }
+.band .lang-switch button:focus-visible { outline-color: var(--accent); }
