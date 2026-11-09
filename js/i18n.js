@@ -7,6 +7,8 @@
 export const DICT = {
   en: {
     'lang.label': 'Language',
+    'pw.show': 'Show password',
+    'pw.hide': 'Hide password',
 
     'auth.welcome': 'Welcome Back',
     'auth.welcomeDesc': 'Log in securely to manage your daily expenses',
@@ -106,6 +108,8 @@ export const DICT = {
 
   es: {
     'lang.label': 'Idioma',
+    'pw.show': 'Mostrar contraseña',
+    'pw.hide': 'Ocultar contraseña',
 
     'auth.welcome': 'Bienvenido de nuevo',
     'auth.welcomeDesc': 'Inicia sesión de forma segura para gestionar tus gastos diarios',

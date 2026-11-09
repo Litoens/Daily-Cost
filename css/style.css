@@ -581,3 +581,17 @@ footer {
 .chip-btn:hover { border-color: var(--ink); background: var(--ground); }
 .chip-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 @media (pointer: coarse) { .chip-btn { min-height: 44px; padding-inline: 0.9rem; } }
+
+/* ---------- Password show/hide ---------- */
+.pw-field { position: relative; }
+.pw-field input { padding-right: 2.9rem; }
+.pw-toggle {
+  position: absolute; top: 0; right: 0; height: 100%; width: 2.75rem;
+  display: grid; place-items: center;
+  background: transparent; border: none; border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-muted); cursor: pointer;
+}
+.pw-toggle svg { width: 1.2rem; height: 1.2rem; }
+.pw-toggle:hover { color: var(--ink); }
+.pw-toggle[aria-pressed="true"] { color: var(--ink); }
+.pw-toggle:focus-visible { outline-offset: -3px; }

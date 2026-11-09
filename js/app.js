@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient.js';
-import { catIcon, CATEGORIES } from './icons.js';
+import { catIcon, uiIcon, CATEGORIES } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 
 // DOM Elements
@@ -67,6 +67,33 @@ function renderCategoryPicker() {
 }
 renderCategoryPicker();
 costCategoryPicker.addEventListener('change', () => { costCard.dataset.cat = costForm.elements.category.value; });
+
+// Show/hide toggle on every password field.
+function enhancePasswordFields() {
+  document.querySelectorAll('input[type="password"]').forEach((input) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'pw-field';
+    input.replaceWith(wrap);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pw-toggle';
+    btn.setAttribute('aria-pressed', 'false');
+    wrap.append(input, btn);
+    const paint = () => {
+      const shown = input.type === 'text';
+      btn.innerHTML = uiIcon(shown ? 'eyeOff' : 'eye');
+      btn.setAttribute('aria-label', t(shown ? 'pw.hide' : 'pw.show'));
+      btn.setAttribute('aria-pressed', String(shown));
+    };
+    btn.addEventListener('click', () => {
+      input.type = input.type === 'password' ? 'text' : 'password';
+      paint();
+    });
+    btn.paint = paint;
+    paint();
+  });
+}
+enhancePasswordFields();
 
 // Auth DOM Elements
 const authTitle = document.getElementById('auth-title');
@@ -624,6 +651,7 @@ function escapeHtml(str) {
 
 // Re-render JS-built content when the language changes
 onLangChange(() => {
+  document.querySelectorAll('.pw-toggle').forEach((b) => b.paint());
   renderCategoryPicker();
   if (currentUser) {
     renderCosts();
