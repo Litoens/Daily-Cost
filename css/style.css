@@ -276,7 +276,7 @@ header {
 
 .stat-card .amount {
   font-stretch: 112%;
-  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  font-size: clamp(1.5rem, 3.4vw, 2.75rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -449,6 +449,7 @@ footer {
     padding-top: 0.75rem;
     border-top: 1px solid var(--ink-2);
   }
+  .stat-card .amount { font-size: clamp(1.5rem, 6vw, 2.75rem); }
   .stat-card.stat-all .amount { font-size: 1.25rem; }
   .cost-list { max-height: none; overflow: visible; }
 }
