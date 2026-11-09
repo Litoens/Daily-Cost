@@ -628,3 +628,6 @@ footer {
 .toast-undo:hover { background: var(--accent-hover); }
 .toast-undo:focus-visible { outline-color: var(--accent); }
 @media (pointer: coarse) { .toast-undo { min-height: 44px; } }
+
+/* ---------- History summary ---------- */
+.history-summary { margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 700; }

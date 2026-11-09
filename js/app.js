@@ -21,6 +21,7 @@ const costNotesInput = document.getElementById('cost-notes');
 const costMessage = document.getElementById('cost-message');
 
 const costList = document.getElementById('cost-list');
+const historySummary = document.getElementById('history-summary');
 const statTotal = document.getElementById('stat-total');
 const statMonth = document.getElementById('stat-month');
 const searchFilter = document.getElementById('search-filter');
@@ -608,6 +609,16 @@ function renderCosts() {
   statMonth.textContent = `$${totalMonth.toFixed(2)}`;
 
   renderChart();
+
+  // Summary of what the current search/filter shows
+  if (filtered.length === 0) {
+    historySummary.classList.add('hidden');
+  } else {
+    const shown = filtered.reduce((sum, i) => sum + Number(i.amount), 0);
+    historySummary.textContent = t(filtered.length === 1 ? 'history.summaryOne' : 'history.summaryMany',
+      { n: filtered.length, total: `$${shown.toFixed(2)}` });
+    historySummary.classList.remove('hidden');
+  }
 
   // Render list
   if (filtered.length === 0) {
