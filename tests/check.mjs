@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync('index.html', 'utf8');
 const js = readFileSync('js/app.js', 'utf8');
+const validateJs = readFileSync('js/validate.js', 'utf8');
 
 const htmlIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
 const used = [...js.matchAll(/getElementById\('([^']+)'\)/g)].map((m) => m[1]);
@@ -41,7 +42,8 @@ if (diff.length) {
 const usedKeys = [
   ...[...html.matchAll(/data-i18n(?:-placeholder|-aria)?="([^"]+)"/g)].map((m) => m[1]),
   ...[...js.matchAll(/\bt\('([^']+)'[,)]/g)].map((m) => m[1]),
-  ...[...js.matchAll(/dataset\.i18n = '([^']+)'/g)].map((m) => m[1])
+  ...[...js.matchAll(/dataset\.i18n = '([^']+)'/g)].map((m) => m[1]),
+  ...[...validateJs.matchAll(/'((?:err|auth|pw)\.[A-Za-z]+)'/g)].map((m) => m[1])
 ];
 const unknown = [...new Set(usedKeys)].filter((k) => !enKeys.includes(k));
 if (unknown.length) {

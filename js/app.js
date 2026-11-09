@@ -3,6 +3,7 @@ import { catIcon, uiIcon, CATEGORIES } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 import { localISO } from './dates.js';
 import { formatMoney, toCents } from './money.js';
+import { isValidEmail, isValidPassword, authErrorKey } from './validate.js';
 import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, fetchAllPages } from './expenses.js';
 
 // DOM Elements
@@ -190,7 +191,7 @@ forgotForm.addEventListener('submit', async (e) => {
     });
 
     if (error) {
-      showMessage(forgotMessage, error.message, 'error');
+      showMessage(forgotMessage, authErrorText(error), 'error');
     } else {
       showMessage(forgotMessage, t('forgot.sent'), 'success');
     }
@@ -223,7 +224,7 @@ resetPasswordForm.addEventListener('submit', async (e) => {
     });
 
     if (error) {
-      showMessage(resetPasswordMessage, error.message, 'error');
+      showMessage(resetPasswordMessage, authErrorText(error), 'error');
     } else {
       showMessage(resetPasswordMessage, t('setpw.done'), 'success');
       recoveryMode = false;
@@ -251,8 +252,8 @@ async function initSession() {
     authCardMain.classList.remove('hidden');
     forgotCard.classList.add('hidden');
     resetPasswordCard.classList.add('hidden');
-    const decodedDesc = errorDesc ? decodeURIComponent(errorDesc.replace(/\+/g, ' ')) : t('auth.linkExpired');
-    showMessage(authMessage, t('auth.linkError', { desc: decodedDesc }), 'error');
+    if (errorDesc) console.warn('Auth link error:', decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+    showMessage(authMessage, t('auth.linkError'), 'error');
     window.history.replaceState({}, document.title, window.location.pathname);
     return;
   }
@@ -324,16 +325,9 @@ function handleSession(session) {
   }
 }
 
-// Validation Helpers
-function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-function isValidPassword(password) {
-  // 4 to 16 characters, must contain at least one letter and one number
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{4,16}$/;
-  return passwordRegex.test(password);
+function authErrorText(error) {
+  const key = authErrorKey(error);
+  return key ? t(key) : error.message;
 }
 
 // Auth Form Submit
@@ -351,8 +345,8 @@ authForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  // Validate Password
-  if (!isValidPassword(password)) {
+  // Validate password format only when creating an account; sign-in leaves that to the server.
+  if (isSignUpMode && !isValidPassword(password)) {
     showMessage(authMessage, t('auth.invalidPassword'), 'error');
     return;
   }
@@ -361,14 +355,14 @@ authForm.addEventListener('submit', async (e) => {
     if (isSignUpMode) {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
-        showMessage(authMessage, error.message, 'error');
+        showMessage(authMessage, authErrorText(error), 'error');
       } else {
         showMessage(authMessage, t('auth.created'), 'success');
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        showMessage(authMessage, error.message, 'error');
+        showMessage(authMessage, authErrorText(error), 'error');
       }
     }
   });
@@ -480,7 +474,7 @@ changePasswordForm.addEventListener('submit', async (e) => {
 
     const { error } = await supabase.auth.updateUser({ password: next });
     if (error) {
-      showMessage(changePasswordMessage, error.message, 'error');
+      showMessage(changePasswordMessage, authErrorText(error), 'error');
       return;
     }
     await supabase.auth.signOut({ scope: 'others' });
@@ -495,7 +489,7 @@ sendResetLinkBtn.addEventListener('click', () => withBusy(sendResetLinkBtn, asyn
   const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
     redirectTo: window.location.origin + window.location.pathname
   });
-  showMessage(changePasswordMessage, error ? error.message : t('pw.linkSent', { email: currentUser.email }), error ? 'error' : 'success');
+  showMessage(changePasswordMessage, error ? authErrorText(error) : t('pw.linkSent', { email: currentUser.email }), error ? 'error' : 'success');
 }));
 
 // Fetch Costs

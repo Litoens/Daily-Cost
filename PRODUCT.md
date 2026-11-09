@@ -19,7 +19,7 @@ Record a daily cost in a few seconds (date, amount, category, optional note), th
 Single-purpose and private: one list, two numbers, one donut chart of spend by category, no budgets, no sharing. Each user's rows are protected by Row Level Security.
 
 ## Operating Context
-Sign in or sign up with email and a 4-16 character letters-and-numbers password. Forgot-password flow sends an email link that opens a Set New Password form, then returns to sign in. Dashboard: add-expense form, two summary figures, filterable history with delete.
+Sign in or sign up with email and a 4-16 character password with at least one letter and one number (symbols allowed). Forgot-password flow sends an email link that opens a Set New Password form, then returns to sign in. Dashboard: add-expense form, two summary figures, filterable history with delete.
 
 ## Capabilities and Constraints
 - Categories (fixed): Meat & Groceries (stored "Meat"), Food & Dining, Transport, Utilities & Bills (stored "Utilities"), Entertainment, Other. Stored values must not change.

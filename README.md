@@ -5,7 +5,7 @@ A secure, modern daily cost tracking web application powered by **Supabase** (Po
 ---
 
 ## Features
-- **Secure Authentication:** Sign up (with email validation and password requirements: 4–16 characters with letters & numbers), log in, and log out with secure session management and dynamic descriptive UI.
+- **Secure Authentication:** Sign up (with email validation and password requirements: 4–16 characters with at least one letter and one number; symbols allowed), log in, and log out with secure session management and dynamic descriptive UI.
 - **Private Data Storage:** PostgreSQL backend secured with Row Level Security (RLS) so users can only access their own expenses.
 - **Daily Expense Logging:** Record daily costs (e.g. November 30, $20 on Meat) with category selection, dates, and notes.
 - **Dashboard & Summary:** Real-time calculation of total spent and current month expenses, plus filtering and search capabilities.
