@@ -26,7 +26,7 @@ colors:
 typography:
   display:
     fontFamily: "Archivo, system-ui, -apple-system, Segoe UI, sans-serif"
-    fontSize: "clamp(1.75rem, 5vw, 2.75rem)"
+    fontSize: "clamp(1.5rem, 3.4vw, 2.75rem)"
     fontWeight: 800
     lineHeight: 1.1
     letterSpacing: "-0.02em"
@@ -54,6 +54,8 @@ typography:
 rounded:
   sm: "4px"
   swatch: "2px"
+  chip: "6px"
+  pill: "999px"
 spacing:
   xs: "0.35rem"
   sm: "0.75rem"
@@ -68,15 +70,33 @@ components:
     padding: "0.75rem 1.25rem"
   button-primary-hover:
     backgroundColor: "{colors.accent-hover}"
-  button-signout:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.on-ink}"
+  button-secondary:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
     rounded: "{rounded.sm}"
-    padding: "0.45rem 0.9rem"
-  button-danger:
+    padding: "0.75rem 1.25rem"
+  button-secondary-hover:
+    backgroundColor: "{colors.ground}"
+  icon-btn:
+    backgroundColor: "transparent"
+    textColor: "{colors.text-muted}"
+    rounded: "{rounded.sm}"
+    padding: "0"
+  icon-btn-hover:
+    backgroundColor: "{colors.ground}"
+    textColor: "{colors.ink}"
+  icon-btn-danger-hover:
+    backgroundColor: "{colors.danger-bg}"
     textColor: "{colors.danger}"
-    rounded: "{rounded.sm}"
-    padding: "0.3rem 0.7rem"
+  category-chip:
+    backgroundColor: "{colors.cat-other}"
+    textColor: "#ffffff"
+    rounded: "{rounded.chip}"
+  chip-btn:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    padding: "0.2rem 0.6rem"
   input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
@@ -101,13 +121,13 @@ components:
 
 Money is filed, not decorated. Six categories are six coloured envelopes; the colour is the filing system and appears only where a row or form needs to say which envelope it belongs to. Everything else is deep envelope-green ink on a cool pale ground, flat and hairline-ruled, with exactly one loud thing per screen: the chartreuse action.
 
-The dashboard is an ink band (name, account, two large figures) closed by a six-segment category strip, over a two-column working area: add-expense form left, history right. Auth is a single centred card carrying the same strip across its top edge. Density is calm and compact; this is a tool used in seconds, right after spending.
+The dashboard is an ink band (name, language switch, profile menu, three large figures: Today, This Month, All time) closed by a six-segment category strip, over a three-column working area: add-expense form, category chart, history. Auth is a single centred card carrying the same strip across its top edge. Density is calm and compact; this is a tool used in seconds, right after spending.
 
 **Key Characteristics:**
 - Ink-green shell, pale ground, white working cards.
-- One chartreuse primary action; six category hues used only as dots, a strip, and the form's top rule.
+- One chartreuse primary action; six category hues used only as chips, a strip, and the form's top rule.
 - Archivo throughout, tabular numerals everywhere, widened (112%) for the big figures and card titles.
-- Flat and hairline-ruled; 4px corners; a single soft shadow on the add card and the auth card.
+- Flat and hairline-ruled; 4px corners; soft shadows only on the add card, the auth card, the profile menu and the toast.
 
 ## Colors
 
@@ -115,7 +135,7 @@ A restrained green-neutral palette with one acid accent and a six-hue category s
 
 ### Primary
 - **Envelope Ink** (`ink`, #12261f): the top band, body text, button text, hover border on fields, caret.
-- **Chartreuse Stamp** (`accent`, #c8f23a): the one primary button per view (Sign In, Add Expense, Send Reset Link, Update Password), text-selection highlight, text-link hover. Hover darkens to `accent-hover`.
+- **Chartreuse Stamp** (`accent`, #c8f23a): the one primary button per view (Sign In, Add Expense or Save, Send Reset Link, Update Password), text-selection highlight, text-link hover, the profile button, menu-item hover, the toast's Undo button and the active language on the band. Hover darkens to `accent-hover`.
 
 ### Secondary (category envelopes)
 - **Tomato** (`cat-meat`, #e4572e): Meat & Groceries.
@@ -133,7 +153,7 @@ A restrained green-neutral palette with one acid accent and a six-hue category s
 - **Muted Text** (`text-muted`, #4a5c54): secondary copy, dates, notes.
 - **Hairline** (`line`, #cdd6cf): card borders, row dividers, tab rule.
 - **Focus Blue** (`focus`, #1c6dd0): focus outline and field focus ring only.
-- **Danger / OK** (`danger` #b3261e on `danger-bg` #fbe4e1; `ok` #176b3a on `ok-bg` #dcf1e2): messages and the Delete action.
+- **Danger / OK** (`danger` #b3261e on `danger-bg` #fbe4e1; `ok` #176b3a on `ok-bg` #dcf1e2): messages and the hover of the bin icon button.
 
 ### Named Rules
 **The Envelope Rule.** Category hues mark category and nothing else: a dot, the strip, the form's top rule. Never a button, link, or status colour.
@@ -148,25 +168,25 @@ A restrained green-neutral palette with one acid accent and a six-hue category s
 **Character:** One grotesque family doing all the work, widened and heavy for money figures, plain for everything else.
 
 ### Hierarchy
-- **Display** (800, clamp(1.75rem, 5vw, 2.75rem), 1.1, width 112%): the Total and This Month figures.
+- **Display** (800, clamp(1.75rem, 5vw, 2.75rem), 1.1, width 112%): the Today, This Month and All time figures (the third drops to 1.25rem below 760px).
 - **Headline** (800, 1.6rem, width 112%): auth card titles. Dashboard name is 800 at 1.25rem.
-- **Title** (700, 1.0625rem): card headings (Add Expense, Expense History); row amounts are 800 at the same size.
+- **Title** (700, 1.0625rem): card headings (Expense History, chart); the add-card heading is 800 at 1.375rem; row amounts are 800 at the same size.
 - **Body** (400, 1rem, 1.5): inputs and general copy; auth description 0.9375rem in muted text.
-- **Label** (600, 0.8125rem): field labels, stat captions, dates, notes, Delete.
+- **Label** (600, 0.8125rem): field labels, stat captions, day headers, notes.
 
 ### Named Rules
 **The Tabular Rule.** Every number sits in tabular figures so amounts align down the list.
 
 ## Layout
 
-A 1100px centred `wrap` with 1.25rem side padding. Stats are a two-column grid divided by a hairline. The work area is a two-column grid (form column 280-340px, history fluid), 1.5rem gap, top-aligned. At 760px and below it collapses to one column; at 480px the filter bar stacks and the email truncates to 9rem. Spacing rhythm is rem-based: 0.35 / 0.75 / 1.1 / 1.25 / 1.5 / 2. History scrolls inside a 30rem list.
+A 1280px centred `wrap` with 1.25rem side padding. Stats are a three-column grid (Today, This Month, All time) divided by hairlines. The work area is a three-column grid, 1.5rem gap, top-aligned: add-expense form (300-360px), category chart (260-300px), history (fluid). Below 1020px it becomes two columns (form and chart) with the history spanning the full row beneath; below 760px it is one column, the stats become two columns with All time on its own row, and the history list stops scrolling inside itself so it scrolls with the page. At 480px and below the filter bar stacks and the email truncates to 9rem. Spacing rhythm is rem-based: 0.35 / 0.75 / 1.1 / 1.25 / 1.5 / 2. Above 760px the history scrolls inside a 30rem list.
 
 ## Elevation & Depth
 
-Flat by default; depth comes from white cards on the pale ground and hairline borders. The only shadows are one soft, low, ink-tinted drop under the add card and the auth card.
+Flat by default; depth comes from white cards on the pale ground and hairline borders. The only shadows are soft, low, ink-tinted drops under the add card, the auth card, the profile menu and the toast.
 
 ### Shadow Vocabulary
-- **Card Lift** (`box-shadow: 0 10px 24px -14px rgba(18, 38, 31, 0.3)`): add card; the auth card uses `0 10px 24px -12px rgba(18, 38, 31, 0.28)`.
+- **Card Lift** (`box-shadow: 0 18px 36px -16px rgba(18, 38, 31, 0.5)`): add card; the auth card uses `0 10px 24px -12px rgba(18, 38, 31, 0.28)`, the profile menu `0 12px 28px -12px rgba(18, 38, 31, 0.45)`, the toast `0 14px 30px -12px rgba(18, 38, 31, 0.6)`.
 - **Field Focus Ring** (`box-shadow: 0 0 0 3px rgba(28, 109, 208, 0.28)`): focused fields.
 
 ### Named Rules
@@ -174,15 +194,16 @@ Flat by default; depth comes from white cards on the pale ground and hairline bo
 
 ## Shapes
 
-One corner: 4px on cards, fields, buttons, messages (2px on category squares). Hairline 1px borders; two category-coloured rules: the 4px top border of the add card (follows the selected category) and the 6px six-segment strip on the band's lower edge and auth card top.
+One corner: 4px on cards, fields, buttons, messages (6px on category chips, fully round on the small chip buttons). Hairline 1px borders, except the add card, which has a 2px ink border. Two category-coloured rules: the 6px top border of the add card (follows the selected category) and the 6px six-segment strip on the band's lower edge and auth card top.
 
 ## Components
 
 ### Buttons
 - **Shape:** 4px radius, 1px ink border, weight 700.
 - **Primary:** chartreuse fill, ink text, full width, 0.75rem 1.25rem padding; hover `accent-hover`; active nudges 1px down.
-- **Sign Out:** transparent on the band, on-ink text, muted border, hover fills `ink-raised`.
-- **Delete:** borderless red text, 0.8125rem; hover fills `danger-bg`; 44px min height on coarse pointers.
+- **Secondary (Cancel):** same shape as primary but transparent; shown under the primary button while editing an expense; hover fills `ground`.
+- **Icon button (`icon-btn`):** borderless 2.25rem square, muted icon, 4px radius; hover fills `ground`. The bin variant hovers to `danger-bg` with red icon. 44px on coarse pointers.
+- **Chip button (`chip-btn`):** small pill with a 1px border, used for the date shortcuts and the chart period switch; the pressed one fills ink.
 
 ### Inputs / Fields
 - **Style:** white, 1px border #8fa196, 4px radius, 0.65rem 0.8rem padding. Hover border goes ink.
@@ -192,10 +213,10 @@ One corner: 4px on cards, fields, buttons, messages (2px on category squares). H
 White, 1px hairline, 4px radius, 1.25rem padding. The add card carries the category top rule and card lift.
 
 ### Navigation
-Auth Sign In / Sign Up tabs: transparent, muted text, 3px bottom rule that turns ink when active. Text links are bold ink with chartreuse hover fill.
+Auth Sign In / Sign Up tabs: transparent, muted text, 3px bottom rule that turns ink when active. Sign Out lives in the profile menu (round profile button on the band; the menu also holds Account and Reset password). Text links are bold ink with chartreuse hover fill.
 
 ### Expense Row
-Category dot (0.7rem square, 2px radius) plus bold category name, muted date and notes indented beneath, right-aligned heavy amount, Delete. Hover fills `ground`.
+Category chip (1.75rem square, 6px radius, solid category colour with a white outline icon; ink icon on amber) plus bold category name, muted notes indented beneath, right-aligned heavy amount, then pencil and bin icon buttons. Rows sit under sticky day headers with a daily subtotal. Hover fills `ground`; the row being edited keeps that fill.
 
 ### Messages
 Error and success strips with tinted fill and matching text, 4px radius.
@@ -203,7 +224,7 @@ Error and success strips with tinted fill and matching text, 4px radius.
 ## Do's and Don'ts
 
 ### Do:
-- **Do** use the six category hues only as dots, the strip, and the add card's top rule.
+- **Do** use the six category hues only as chips, the strip, and the add card's top rule.
 - **Do** keep chartreuse for the single primary action of a view.
 - **Do** set every figure in tabular numerals; widen (112%) only large figures and card titles.
 - **Do** keep surfaces flat with 1px `line` borders and 4px corners.

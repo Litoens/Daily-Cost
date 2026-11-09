@@ -13,10 +13,39 @@ All notable changes to this project will be documented in this file.
 - **Filter summary:** count and total for the current search and category filter.
 - **Spanish translation and language switcher (EN | ES)**, remembered in the browser. Texts live in `js/i18n.js`; CI checks both languages have the same keys. Supabase's own error messages remain in English.
 - **Category icons** in a colour chip in the history list and chart legend, plus the **spend-by-category donut chart**.
+- **Edit an expense:** a pencil icon on each row loads it into the add form, which then offers Save and Cancel (Escape also cancels).
+- **Today figure** beside This month and All time.
+- **Chart period:** the category chart switches between this month (default) and all time.
+- **CSV export** of the filtered expense list.
+- **Favicon, theme colour and web manifest.**
+- **Unit tests** for the money, date, validation and expense logic, run in CI (`node --test`).
 
 ### Changed
 - The amount field is focused again after saving, ready for the next expense.
 - The date field now defaults to the user's local today (it could show tomorrow in the evening before).
+- **Passwords** may now contain symbols. The rule stays 4 to 16 characters with at least one letter and one number; sign-in no longer checks the format.
+- **Row actions** are icon buttons (pencil, bin) instead of a "Delete" text button.
+- **Sign-in and password errors** are shown in the selected language.
+- **Category search** matches the translated category name.
+- **Money** is summed in cents and shown with thousands separators.
+- **Accessibility:** the auth tabs, profile menu, messages and the toast work with the keyboard and screen readers. On phones the history list scrolls with the page.
+
+### Fixed
+- **Totals and chart were wrong beyond 1,000 expenses;** expenses are now loaded in pages.
+- **Double-clicking a submit button** could create duplicate entries; buttons are now disabled while their request runs.
+- **Pressing Escape** anywhere moved focus to the profile button.
+- **A slow load** could repaint the list after sign-out, and every token refresh reloaded all expenses.
+- **A failed delete** showed a browser alert; it now shows a message in the toast.
+
+### Security
+- The Supabase client is pinned to an exact version.
+- A Content Security Policy is added; no inline styles or handlers remain.
+- **Database migration** `migrations/2026-11-09-harden-costs.sql`: the update policy gets a `with check`, amounts must be above zero, notes are limited to 500 characters, and an index is added.
+- The password-reset link error no longer shows Supabase setup instructions to end users.
+
+### Action needed from the project owner
+- **Required:** in the Supabase SQL editor, run the pre-check query at the top of `migrations/2026-11-09-harden-costs.sql`, then run that file.
+- **Optional:** Supabase has its own minimum password length setting (Authentication settings). If it is above 4, the server refuses passwords of 4 or 5 characters.
 
 ## [1.3.2] - 2026-11-06
 
