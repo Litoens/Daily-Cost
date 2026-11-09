@@ -550,16 +550,25 @@ function hideToast() {
 }
 
 // Delete Cost: removed right away; "Undo" re-inserts the same row (same id), so nothing is lost if the tab closes.
-window.deleteCost = async function(id) {
+async function deleteCost(id, btn) {
   const row = costsCache.find(c => c.id === id);
+  if (btn) btn.disabled = true;
   const { error } = await supabase.from('costs').delete().eq('id', id);
   if (error) {
-    alert(t('history.deleteFailed', { msg: error.message }));
+    if (btn) btn.disabled = false;
+    showToast(t('history.deleteFailed', { msg: error.message }), { ms: 8000 });
     return;
   }
   await fetchCosts();
   if (row) showToast(t('toast.deleted'), { undo: row });
-};
+}
+
+// One delegated listener for every row action (later tasks add more actions here).
+costList.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn || !costList.contains(btn)) return;
+  if (btn.dataset.action === 'delete') deleteCost(btn.dataset.id, btn);
+});
 
 toastUndo.addEventListener('click', async () => {
   const row = undoRow;
@@ -629,7 +638,7 @@ function renderCosts() {
       </div>
       <div class="cost-right">
         <span class="cost-amount">${formatMoney(toCents(item.amount))}</span>
-        <button class="btn btn-danger" onclick="deleteCost('${item.id}')">${t('history.delete')}</button>
+        <button type="button" class="icon-btn danger" data-action="delete" data-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(t('history.deleteAria', { cat: t('cat.' + item.category), amount: formatMoney(toCents(item.amount)) }))}">${uiIcon('trash')}</button>
       </div>
     </li>`).join('')}`).join('');
 }

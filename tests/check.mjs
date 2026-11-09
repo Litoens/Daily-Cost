@@ -21,6 +21,14 @@ if (dupes.length) {
 
 console.log(`OK: ${new Set(used).size} ids found, no duplicates`);
 
+const forbidden = [
+  [/onclick=/, 'inline onclick handler'],
+  [/window\.deleteCost/, 'global deleteCost'],
+  [/\balert\(/, 'alert()']
+];
+const hits = forbidden.filter(([re]) => re.test(js) || re.test(html)).map(([, why]) => why);
+if (hits.length) { console.error('Forbidden patterns:', hits.join(', ')); process.exit(1); }
+
 // i18n: both dictionaries have the same keys, and every key used in index.html / app.js exists.
 const { DICT } = await import('../js/i18n.js');
 const enKeys = Object.keys(DICT.en);

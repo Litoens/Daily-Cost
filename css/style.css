@@ -104,29 +104,20 @@ input:focus, select:focus, textarea:focus {
 .btn:hover { background: var(--accent-hover); }
 .btn:active { transform: translateY(1px); }
 
-.btn-danger {
-  width: auto;
-  padding: 0.3rem 0.7rem;
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.25rem; height: 2.25rem;
+  padding: 0;
   background: transparent;
-  color: var(--danger);
-  border-color: transparent;
-  font-size: 0.8125rem;
-  font-weight: 600;
+  color: var(--text-muted);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
 }
-
-.btn-danger:hover { background: var(--danger-bg); }
-
-.btn-logout {
-  width: auto;
-  padding: 0.45rem 0.9rem;
-  background: transparent;
-  color: var(--on-ink);
-  border-color: var(--on-ink-muted);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.btn-logout:hover { background: var(--ink-2); }
+.icon-btn svg { width: 1.1rem; height: 1.1rem; }
+.icon-btn:hover { background: var(--ground); color: var(--ink); }
+.icon-btn.danger:hover { background: var(--danger-bg); color: var(--danger); }
+.icon-btn:disabled { opacity: 0.5; cursor: default; }
 
 .message {
   margin-top: 1rem;
@@ -429,7 +420,7 @@ footer {
   to { opacity: 1; transform: none; }
 }
 
-@media (pointer: coarse) { .btn-danger { min-height: 44px; padding-inline: 0.9rem; } }
+@media (pointer: coarse) { .icon-btn { width: 44px; height: 44px; } }
 
 @media (max-width: 480px) {
   .filter-bar { flex-direction: column; }
