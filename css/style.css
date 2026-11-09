@@ -105,6 +105,8 @@ input:focus, select:focus, textarea:focus {
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled, .toast-undo:disabled, .link-btn:disabled { opacity: 0.6; cursor: progress; }
 .btn:disabled:hover { background: var(--accent); }
+.btn-secondary { margin-top: 0.5rem; background: transparent; }
+.btn-secondary:hover { background: var(--ground); }
 
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -355,6 +357,7 @@ header {
 }
 
 .cost-item:hover { background: var(--ground); }
+.cost-item[aria-current="true"] { background: var(--ground); }
 
 .cost-item[data-cat="Meat"] { --cat: var(--cat-meat); }
 .cost-item[data-cat="Food & Dining"] { --cat: var(--cat-food); }

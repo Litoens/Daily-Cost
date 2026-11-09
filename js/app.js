@@ -35,6 +35,7 @@ let isSignUpMode = false;
 let currentUser = null;
 let fetchSeq = 0;
 let costsCache = [];
+let editingId = null; // id of the expense loaded into the add form, or null when adding
 // Set before anything else so the recovery session is never mistaken for a login.
 let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
 
@@ -322,6 +323,7 @@ function handleSession(session) {
     forgotCard.classList.add('hidden');
     resetPasswordCard.classList.add('hidden');
     costsCache = [];
+    stopEdit();
   }
 }
 
@@ -519,7 +521,56 @@ async function fetchCosts() {
   renderCosts();
 }
 
-// Add Cost
+// Edit mode: the one add form is reused to change an existing expense.
+const costFormTitle = document.getElementById('cost-form-title');
+const costSubmit = document.getElementById('cost-submit');
+const costCancel = document.getElementById('cost-cancel');
+
+function setFormMode(editing) {
+  costFormTitle.dataset.i18n = editing ? 'form.editTitle' : 'form.title';
+  costSubmit.dataset.i18n = editing ? 'form.save' : 'form.submit';
+  costCancel.classList.toggle('hidden', !editing);
+  applyTranslations();
+}
+
+function startEdit(id) {
+  const row = costsCache.find((c) => c.id === id);
+  if (!row) return;
+  editingId = id;
+  costDateInput.value = row.date;
+  costAmountInput.value = Number(row.amount).toFixed(2);
+  costNotesInput.value = row.notes || '';
+  // A category outside the six leaves nothing checked, so the required radio forces a choice.
+  costForm.querySelectorAll('input[name="category"]').forEach((r) => { r.checked = false; });
+  costForm.elements.category.value = row.category;
+  const picked = costForm.elements.category.value;
+  if (picked) costCard.dataset.cat = picked; else delete costCard.dataset.cat;
+  costMessage.classList.add('hidden');
+  syncDateShortcuts();
+  setFormMode(true);
+  renderCosts();
+  costCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  costAmountInput.focus();
+  costAmountInput.select();
+}
+
+function stopEdit() {
+  if (editingId === null) return;
+  editingId = null;
+  costForm.reset();
+  delete costCard.dataset.cat;
+  setCostDate(0);
+  costMessage.classList.add('hidden');
+  setFormMode(false);
+  renderCosts();
+}
+
+costCancel.addEventListener('click', () => { stopEdit(); costAmountInput.focus(); });
+costForm.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && editingId !== null) { e.preventDefault(); stopEdit(); }
+});
+
+// Add or save Cost
 costForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!currentUser) return;
@@ -528,6 +579,21 @@ costForm.addEventListener('submit', async (e) => {
   const category = costForm.elements.category.value;
   const date = costDateInput.value;
   const notes = costNotesInput.value.trim();
+
+  if (editingId !== null) {
+    const id = editingId;
+    await withBusy(costForm, async () => {
+      const { error } = await supabase.from('costs').update({ amount, category, date, notes }).eq('id', id);
+      if (error) {
+        showMessage(costMessage, error.message, 'error');
+        return;
+      }
+      if (editingId === id) stopEdit();
+      fetchCosts();
+      showToast(t('toast.updated'), { ms: 3000 });
+    });
+    return;
+  }
 
   await withBusy(costForm, async () => {
     const { error } = await supabase.from('costs').insert([
@@ -598,6 +664,7 @@ async function deleteCost(id, btn) {
     showToast(t('history.deleteFailed', { msg: error.message }), { ms: 8000 });
     return;
   }
+  if (id === editingId) stopEdit();
   await fetchCosts();
   if (row) showToast(t('toast.deleted'), { undo: row });
 }
@@ -606,6 +673,7 @@ async function deleteCost(id, btn) {
 costList.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
   if (!btn || !costList.contains(btn)) return;
+  if (btn.dataset.action === 'edit') startEdit(btn.dataset.id);
   if (btn.dataset.action === 'delete') deleteCost(btn.dataset.id, btn);
   if (btn.dataset.action === 'retry') fetchCosts();
 });
@@ -641,6 +709,9 @@ renderCategoryFilter();
 
 // Render & Filter Costs
 function renderCosts() {
+  // The expense being edited is gone (deleted here or elsewhere): leave edit mode, which re-renders.
+  if (editingId !== null && !costsCache.some((c) => c.id === editingId)) { stopEdit(); return; }
+
   const filtered = filterExpenses(costsCache, {
     search: searchFilter.value,
     category: categoryFilter.value,
@@ -673,13 +744,14 @@ function renderCosts() {
   costList.innerHTML = groupByDay(filtered).map(({ date, items, subtotalCents }) => `
     <li class="day-head"><span>${dayLabel(date)}</span><span>${formatMoney(subtotalCents)}</span></li>
     ${items.map(item => `
-    <li class="cost-item" data-cat="${escapeHtml(item.category)}">
+    <li class="cost-item" data-cat="${escapeHtml(item.category)}"${item.id === editingId ? ' aria-current="true"' : ''}>
       <div class="cost-details">
         <div class="cost-cat">${catIcon(item.category)}${escapeHtml(t('cat.' + item.category))}</div>
         ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
       </div>
       <div class="cost-right">
         <span class="cost-amount">${formatMoney(toCents(item.amount))}</span>
+        <button type="button" class="icon-btn" data-action="edit" data-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(t('history.editAria', { cat: t('cat.' + item.category), amount: formatMoney(toCents(item.amount)) }))}">${uiIcon('pencil')}</button>
         <button type="button" class="icon-btn danger" data-action="delete" data-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(t('history.deleteAria', { cat: t('cat.' + item.category), amount: formatMoney(toCents(item.amount)) }))}">${uiIcon('trash')}</button>
       </div>
     </li>`).join('')}`).join('');

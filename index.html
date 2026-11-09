@@ -135,7 +135,7 @@
     <main id="expenses-view" class="wrap dashboard-grid">
       <!-- Add Cost Form -->
       <div class="card card-entry">
-        <h2 data-i18n="form.title">Add Expense</h2>
+        <h2 id="cost-form-title" data-i18n="form.title">Add Expense</h2>
         <form id="cost-form">
           <div class="form-group">
             <div class="field-row">
@@ -163,7 +163,8 @@
             <textarea id="cost-notes" rows="2" placeholder="e.g. 2kg of fresh beef" data-i18n-placeholder="form.notesPlaceholder"></textarea>
           </div>
 
-          <button type="submit" class="btn" data-i18n="form.submit">Add Expense</button>
+          <button type="submit" id="cost-submit" class="btn" data-i18n="form.submit">Add Expense</button>
+          <button type="button" id="cost-cancel" class="btn btn-secondary hidden" data-i18n="form.cancel">Cancel</button>
           <div id="cost-message" class="message hidden" role="status"></div>
         </form>
       </div>

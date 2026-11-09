@@ -63,6 +63,11 @@ export const DICT = {
     'form.notesPlaceholder': 'e.g. 2kg of fresh beef',
     'form.submit': 'Add Expense',
     'form.added': 'Expense added successfully!',
+    'form.editTitle': 'Edit Expense',
+    'form.save': 'Save Changes',
+    'form.cancel': 'Cancel',
+    'history.editAria': 'Edit {cat} expense of {amount}',
+    'toast.updated': 'Expense updated.',
 
     'cat.Meat': 'Meat & Groceries',
     'cat.Food & Dining': 'Food & Dining',
@@ -176,6 +181,11 @@ export const DICT = {
     'form.notesPlaceholder': 'p. ej. 2 kg de carne fresca',
     'form.submit': 'Agregar gasto',
     'form.added': '¡Gasto agregado!',
+    'form.editTitle': 'Editar gasto',
+    'form.save': 'Guardar cambios',
+    'form.cancel': 'Cancelar',
+    'history.editAria': 'Editar gasto de {cat} por {amount}',
+    'toast.updated': 'Gasto actualizado.',
 
     'cat.Meat': 'Carnes y supermercado',
     'cat.Food & Dining': 'Comida y restaurantes',
