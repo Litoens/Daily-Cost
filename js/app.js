@@ -154,6 +154,21 @@ backToLoginLink.addEventListener('click', (e) => {
   authMessage.classList.add('hidden');
 });
 
+// Run a request with its button disabled so a double click cannot send it twice.
+// `el` is the button itself or a form containing a submit button.
+async function withBusy(el, fn) {
+  const btn = el instanceof HTMLButtonElement ? el : el.querySelector('[type="submit"]');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.setAttribute('aria-busy', 'true');
+  try {
+    await fn();
+  } finally {
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+  }
+}
+
 // Forgot Password Form Submit
 forgotForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -166,15 +181,17 @@ forgotForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
-  });
+  await withBusy(forgotForm, async () => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
 
-  if (error) {
-    showForgotMessage(error.message, 'error');
-  } else {
-    showForgotMessage(t('forgot.sent'), 'success');
-  }
+    if (error) {
+      showForgotMessage(error.message, 'error');
+    } else {
+      showForgotMessage(t('forgot.sent'), 'success');
+    }
+  });
 });
 
 function showForgotMessage(text, type) {
@@ -201,24 +218,26 @@ resetPasswordForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  const { data, error } = await supabase.auth.updateUser({
-    password: newPassword
-  });
+  await withBusy(resetPasswordForm, async () => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
 
-  if (error) {
-    showResetPasswordMessage(error.message, 'error');
-  } else {
-    showResetPasswordMessage(t('setpw.done'), 'success');
-    recoveryMode = false;
-    await supabase.auth.signOut(); // force a fresh sign-in with the new password
-    setTimeout(() => {
-      window.history.replaceState({}, document.title, window.location.pathname);
-      resetPasswordCard.classList.add('hidden');
-      authCardMain.classList.remove('hidden');
-      authView.classList.remove('hidden');
-      showAuthMessage(t('auth.updatedSignIn'), 'success');
-    }, 1500);
-  }
+    if (error) {
+      showResetPasswordMessage(error.message, 'error');
+    } else {
+      showResetPasswordMessage(t('setpw.done'), 'success');
+      recoveryMode = false;
+      await supabase.auth.signOut(); // force a fresh sign-in with the new password
+      setTimeout(() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        resetPasswordCard.classList.add('hidden');
+        authCardMain.classList.remove('hidden');
+        authView.classList.remove('hidden');
+        showAuthMessage(t('auth.updatedSignIn'), 'success');
+      }, 1500);
+    }
+  });
 });
 
 function showResetPasswordMessage(text, type) {
@@ -343,19 +362,21 @@ authForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  if (isSignUpMode) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      showAuthMessage(error.message, 'error');
+  await withBusy(authForm, async () => {
+    if (isSignUpMode) {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        showAuthMessage(error.message, 'error');
+      } else {
+        showAuthMessage(t('auth.created'), 'success');
+      }
     } else {
-      showAuthMessage(t('auth.created'), 'success');
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        showAuthMessage(error.message, 'error');
+      }
     }
-  } else {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      showAuthMessage(error.message, 'error');
-    }
-  }
+  });
 });
 
 function showAuthMessage(text, type) {
@@ -449,29 +470,32 @@ changePasswordForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: current });
-  if (verifyError) {
-    showChangePasswordMessage(t('pw.wrongCurrent'), 'error');
-    return;
-  }
+  await withBusy(changePasswordForm, async () => {
+    const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: current });
+    if (verifyError) {
+      showChangePasswordMessage(t('pw.wrongCurrent'), 'error');
+      return;
+    }
 
-  const { error } = await supabase.auth.updateUser({ password: next });
-  if (error) {
-    showChangePasswordMessage(error.message, 'error');
-    return;
-  }
-  await supabase.auth.signOut({ scope: 'others' });
-  changePasswordForm.reset();
-  showChangePasswordMessage(t('pw.updated'), 'success');
+    const { error } = await supabase.auth.updateUser({ password: next });
+    if (error) {
+      showChangePasswordMessage(error.message, 'error');
+      return;
+    }
+    await supabase.auth.signOut({ scope: 'others' });
+    changePasswordForm.reset();
+    showChangePasswordMessage(t('pw.updated'), 'success');
+  });
 });
 
 // Forgot the current password: reuse the email reset flow.
-document.getElementById('send-reset-link').addEventListener('click', async () => {
+const sendResetLinkBtn = document.getElementById('send-reset-link');
+sendResetLinkBtn.addEventListener('click', () => withBusy(sendResetLinkBtn, async () => {
   const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
     redirectTo: window.location.origin + window.location.pathname
   });
   showChangePasswordMessage(error ? error.message : t('pw.linkSent', { email: currentUser.email }), error ? 'error' : 'success');
-});
+}));
 
 // Fetch Costs
 async function fetchCosts() {
@@ -510,27 +534,29 @@ costForm.addEventListener('submit', async (e) => {
   const date = costDateInput.value;
   const notes = costNotesInput.value.trim();
 
-  const { error } = await supabase.from('costs').insert([
-    {
-      user_id: currentUser.id,
-      amount,
-      category,
-      date,
-      notes
-    }
-  ]);
+  await withBusy(costForm, async () => {
+    const { error } = await supabase.from('costs').insert([
+      {
+        user_id: currentUser.id,
+        amount,
+        category,
+        date,
+        notes
+      }
+    ]);
 
-  if (error) {
-    showCostMessage(error.message, 'error');
-  } else {
-    showCostMessage(t('form.added'), 'success');
-    costForm.reset();
-    delete costCard.dataset.cat;
-    setCostDate(0);
-    costAmountInput.focus(); // ready for the next expense
-    fetchCosts();
-    setTimeout(() => costMessage.classList.add('hidden'), 3000);
-  }
+    if (error) {
+      showCostMessage(error.message, 'error');
+    } else {
+      showCostMessage(t('form.added'), 'success');
+      costForm.reset();
+      delete costCard.dataset.cat;
+      setCostDate(0);
+      costAmountInput.focus(); // ready for the next expense
+      fetchCosts();
+      setTimeout(() => costMessage.classList.add('hidden'), 3000);
+    }
+  });
 });
 
 function showCostMessage(text, type) {
@@ -586,13 +612,15 @@ toastUndo.addEventListener('click', async () => {
   const row = undoRow;
   if (!row) return;
   hideToast();
-  const { error } = await supabase.from('costs').insert([row]);
-  if (error) {
-    showToast(t('toast.undoFailed', { msg: error.message }), { ms: 8000 });
-  } else {
-    await fetchCosts();
-    showToast(t('toast.restored'), { ms: 3000 });
-  }
+  await withBusy(toastUndo, async () => {
+    const { error } = await supabase.from('costs').insert([row]);
+    if (error) {
+      showToast(t('toast.undoFailed', { msg: error.message }), { ms: 8000 });
+    } else {
+      await fetchCosts();
+      showToast(t('toast.restored'), { ms: 3000 });
+    }
+  });
 });
 
 // Category filter: options are built from CATEGORIES so labels follow the language.

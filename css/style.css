@@ -102,7 +102,9 @@ input:focus, select:focus, textarea:focus {
 }
 
 .btn:hover { background: var(--accent-hover); }
-.btn:active { transform: translateY(1px); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled, .toast-undo:disabled, .link-btn:disabled { opacity: 0.6; cursor: progress; }
+.btn:disabled:hover { background: var(--accent); }
 
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
