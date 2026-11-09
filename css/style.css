@@ -640,4 +640,5 @@ footer {
 @media (pointer: coarse) { .toast-undo { min-height: 44px; } }
 
 /* ---------- History summary ---------- */
-.history-summary { margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 700; }
+.summary-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.5rem; }
+.history-summary { font-size: 0.875rem; font-weight: 700; }

@@ -77,3 +77,25 @@ export async function fetchAllPages(getPage, pageSize = 1000) {
     if (page.length < pageSize) return { data: rows, error: null };
   }
 }
+
+function csvField(value) {
+  const text = String(value);
+  return /["\r\n,]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+// CSV of the given expenses, with a UTF-8 BOM so spreadsheets read accents correctly.
+// Notes starting with = + - @ get a leading ' so a spreadsheet never runs them as a formula.
+export function toCsv(items) {
+  const lines = ['date,category,amount,notes'];
+  for (const item of items) {
+    const notes = item.notes == null ? '' : String(item.notes);
+    const safeNotes = /^[=+\-@]/.test(notes) ? `'${notes}` : notes;
+    lines.push([
+      csvField(item.date),
+      csvField(item.category),
+      (toCents(item.amount) / 100).toFixed(2),
+      csvField(safeNotes)
+    ].join(','));
+  }
+  return '\uFEFF' + lines.map((line) => line + '\r\n').join('');
+}

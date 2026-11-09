@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, periodItems } from '../js/expenses.js';
+import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, periodItems, toCsv } from '../js/expenses.js';
 
 const VALUES = ['Meat', 'Food & Dining', 'Transport', 'Utilities', 'Entertainment', 'Other'];
 const rows = [
@@ -47,4 +47,20 @@ test('periodItems', () => {
   assert.deepEqual(ids(periodItems(rows, 'month', '2026-11-09')), ['a', 'b', 'c']);
   assert.deepEqual(ids(periodItems(rows, 'all', '2026-11-09')), ['a', 'b', 'c', 'd']);
   assert.deepEqual(ids(periodItems(rows, 'month', '2026-12-01')), []);
+});
+
+test('toCsv', () => {
+  const csv = toCsv([
+    { date: '2026-11-09', category: 'Food & Dining', amount: '12.5', notes: 'a "b", c' },
+    { date: '2026-11-08', category: 'Other', amount: 3, notes: '=SUM(A1)' },
+    { date: '2026-11-07', category: 'Meat', amount: '1.00', notes: null },
+    { date: '2026-11-06', category: 'Meat', amount: '2.00', notes: 'two\nlines' }
+  ]);
+  assert.equal(csv,
+    '\uFEFFdate,category,amount,notes\r\n' +
+    '2026-11-09,Food & Dining,12.50,"a ""b"", c"\r\n' +
+    "2026-11-08,Other,3.00,'=SUM(A1)\r\n" +
+    '2026-11-07,Meat,1.00,\r\n' +
+    '2026-11-06,Meat,2.00,"two\nlines"\r\n');
+  assert.equal(toCsv([]), '\uFEFFdate,category,amount,notes\r\n');
 });

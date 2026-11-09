@@ -4,7 +4,7 @@ import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 import { localISO } from './dates.js';
 import { formatMoney, toCents } from './money.js';
 import { isValidEmail, isValidPassword, authErrorKey } from './validate.js';
-import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, periodItems, fetchAllPages } from './expenses.js';
+import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, periodItems, fetchAllPages, toCsv } from './expenses.js';
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -26,6 +26,8 @@ const costMessage = document.getElementById('cost-message');
 
 const costList = document.getElementById('cost-list');
 const historySummary = document.getElementById('history-summary');
+const exportCsvBtn = document.getElementById('export-csv');
+let filteredCosts = [];
 const statToday = document.getElementById('stat-today');
 const statTotal = document.getElementById('stat-total');
 const statMonth = document.getElementById('stat-month');
@@ -709,6 +711,18 @@ function renderCategoryFilter() {
 }
 renderCategoryFilter();
 
+exportCsvBtn.addEventListener('click', () => {
+  const blob = new Blob([toCsv(filteredCosts)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `daily-costs-${localISO(0)}.csv`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
 // Render & Filter Costs
 function renderCosts() {
   // The expense being edited is gone (deleted here or elsewhere): leave edit mode, which re-renders.
@@ -719,6 +733,9 @@ function renderCosts() {
     category: categoryFilter.value,
     labelOf: (c) => t('cat.' + c)
   });
+
+  filteredCosts = filtered;
+  exportCsvBtn.classList.toggle('hidden', filtered.length === 0);
 
   const stats = computeStats(costsCache, localISO(0));
   statToday.textContent = formatMoney(stats.todayCents);
