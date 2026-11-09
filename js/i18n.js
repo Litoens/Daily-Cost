@@ -50,7 +50,8 @@ export const DICT = {
     'nav.signOut': 'Sign Out',
     'nav.back': '← Back to expenses',
 
-    'stats.total': 'Total Spent (All Time)',
+    'stats.today': 'Today',
+    'stats.total': 'All time',
     'stats.month': 'This Month',
 
     'form.title': 'Add Expense',
@@ -168,7 +169,8 @@ export const DICT = {
     'nav.signOut': 'Cerrar sesión',
     'nav.back': '← Volver a los gastos',
 
-    'stats.total': 'Total gastado (histórico)',
+    'stats.today': 'Hoy',
+    'stats.total': 'Histórico',
     'stats.month': 'Este mes',
 
     'form.title': 'Agregar gasto',

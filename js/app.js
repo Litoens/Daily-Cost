@@ -26,6 +26,7 @@ const costMessage = document.getElementById('cost-message');
 
 const costList = document.getElementById('cost-list');
 const historySummary = document.getElementById('history-summary');
+const statToday = document.getElementById('stat-today');
 const statTotal = document.getElementById('stat-total');
 const statMonth = document.getElementById('stat-month');
 const searchFilter = document.getElementById('search-filter');
@@ -719,6 +720,7 @@ function renderCosts() {
   });
 
   const stats = computeStats(costsCache, localISO(0));
+  statToday.textContent = formatMoney(stats.todayCents);
   statTotal.textContent = formatMoney(stats.allCents);
   statMonth.textContent = formatMoney(stats.monthCents);
 
