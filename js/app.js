@@ -521,6 +521,7 @@ costForm.addEventListener('submit', async (e) => {
     costForm.reset();
     delete costCard.dataset.cat;
     setCostDate(0);
+    costAmountInput.focus(); // ready for the next expense
     fetchCosts();
     setTimeout(() => costMessage.classList.add('hidden'), 3000);
   }
