@@ -126,7 +126,7 @@
     <!-- Main Workspace -->
     <main id="expenses-view" class="wrap dashboard-grid">
       <!-- Add Cost Form -->
-      <div class="card">
+      <div class="card card-entry">
         <h2>Add Expense</h2>
         <form id="cost-form">
           <div class="form-group">
@@ -162,8 +162,16 @@
         </form>
       </div>
 
+      <!-- Spending breakdown -->
+      <div class="card card-chart">
+        <h2>Where it goes</h2>
+        <div id="chart-body" class="chart-body">
+          <p class="empty-state">Add an expense to see the breakdown.</p>
+        </div>
+      </div>
+
       <!-- Cost History -->
-      <div class="card">
+      <div class="card card-history">
         <h2>Expense History</h2>
         <div class="filter-bar">
           <input type="text" id="search-filter" placeholder="Search category or notes..." aria-label="Search expenses">
