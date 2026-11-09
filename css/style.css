@@ -361,11 +361,13 @@ header {
 .cost-item:hover { background: var(--ground); }
 .cost-item[aria-current="true"] { background: var(--ground); }
 
-.cost-item[data-cat="Meat"] { --cat: var(--cat-meat); }
-.cost-item[data-cat="Food & Dining"] { --cat: var(--cat-food); }
-.cost-item[data-cat="Transport"] { --cat: var(--cat-transport); }
-.cost-item[data-cat="Utilities"] { --cat: var(--cat-utilities); }
-.cost-item[data-cat="Entertainment"] { --cat: var(--cat-fun); }
+/* Category colour for any element that carries data-cat (picker, legend, rows). */
+[data-cat="Meat"] { --cat: var(--cat-meat); }
+[data-cat="Food & Dining"] { --cat: var(--cat-food); }
+[data-cat="Transport"] { --cat: var(--cat-transport); }
+[data-cat="Utilities"] { --cat: var(--cat-utilities); }
+[data-cat="Entertainment"] { --cat: var(--cat-fun); }
+[data-cat="Other"] { --cat: var(--cat-other); }
 
 .cost-details { min-width: 0; }
 
@@ -385,7 +387,7 @@ header {
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 6px;
-  background: var(--cat);
+  background: var(--cat, var(--cat-other));
   color: var(--on-cat);
 }
 .cat-ico svg { width: 1rem; height: 1rem; }

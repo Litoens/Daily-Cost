@@ -63,7 +63,7 @@ const costCard = costForm.closest('.card');
 function renderCategoryPicker() {
   const selected = costForm.elements.category?.value || '';
   costCategoryPicker.innerHTML = CATEGORIES.map((c, i) => `
-    <label class="cat-opt" data-cat="${c.value}" style="--cat:${c.color}">
+    <label class="cat-opt" data-cat="${c.value}">
       <input type="radio" name="category" value="${c.value}"${c.value === selected ? ' checked' : ''}${i === 0 ? ' required' : ''}>
       <span class="cat-opt-body">${catIcon(c.value)}<span>${t('cat.' + c.value)}</span></span>
     </label>`).join('');
@@ -819,7 +819,7 @@ function renderChart() {
 
   const legend = [...rows]
     .sort((a, b) => b.cents - a.cents)
-    .map(r => `<li data-cat="${r.value}" style="--cat:${colorOf(r.value)}"><span class="legend-name">${catIcon(r.value)}${t('cat.' + r.value)}</span>` +
+    .map(r => `<li data-cat="${r.value}"><span class="legend-name">${catIcon(r.value)}${t('cat.' + r.value)}</span>` +
       `<span class="legend-pct">${Math.round(r.pct)}%</span>` +
       `<span class="legend-amt">${formatMoney(r.cents)}</span></li>`)
     .join('');

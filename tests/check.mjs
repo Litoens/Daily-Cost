@@ -25,7 +25,8 @@ console.log(`OK: ${new Set(used).size} ids found, no duplicates`);
 const forbidden = [
   [/onclick=/, 'inline onclick handler'],
   [/window\.deleteCost/, 'global deleteCost'],
-  [/\balert\(/, 'alert()']
+  [/\balert\(/, 'alert()'],
+  [/style="/, 'inline style attribute']
 ];
 const hits = forbidden.filter(([re]) => re.test(js) || re.test(html)).map(([, why]) => why);
 if (hits.length) { console.error('Forbidden patterns:', hits.join(', ')); process.exit(1); }
@@ -51,3 +52,15 @@ if (unknown.length) {
   process.exit(1);
 }
 console.log(`OK: ${enKeys.length} i18n keys in en and es`);
+
+// Supply chain and CSP: the Supabase client is pinned to an exact version and the page carries a policy.
+const clientJs = readFileSync('js/supabaseClient.js', 'utf8');
+if (!/supabase-js@\d+\.\d+\.\d+\/\+esm/.test(clientJs)) {
+  console.error('js/supabaseClient.js must import a pinned supabase-js@X.Y.Z/+esm');
+  process.exit(1);
+}
+if (!html.includes('http-equiv="Content-Security-Policy"')) {
+  console.error('index.html is missing the Content-Security-Policy meta tag');
+  process.exit(1);
+}
+console.log('OK: Supabase client pinned, Content Security Policy present');
