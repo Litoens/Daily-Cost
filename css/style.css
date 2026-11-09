@@ -339,7 +339,6 @@ header {
   padding: 0.35rem 0; font-size: 0.8125rem; border-bottom: 1px solid var(--line);
 }
 .legend-name { display: flex; align-items: center; gap: 0.5rem; min-width: 0; font-weight: 600; }
-.legend-name::before { content: ''; flex: none; width: 0.65rem; height: 0.65rem; border-radius: 2px; background: var(--cat); }
 .legend-pct { color: var(--text-muted); }
 .legend-amt { font-weight: 800; min-width: 5ch; text-align: right; }
 
@@ -379,19 +378,25 @@ header {
   font-weight: 700;
 }
 
-.cost-cat::before {
-  content: '';
+/* Category chip: solid category colour with an outline icon. */
+.cat-ico {
+  --on-cat: #fff;
   flex: none;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 6px;
   background: var(--cat);
+  color: var(--on-cat);
 }
+.cat-ico svg { width: 1rem; height: 1rem; }
+[data-cat="Food & Dining"] .cat-ico { --on-cat: var(--ink); }
 
 .cost-date, .cost-notes {
   font-size: 0.8125rem;
   color: var(--text-muted);
-  padding-left: 1.25rem;
+  padding-left: 2.3rem;
   overflow-wrap: anywhere;
 }
 

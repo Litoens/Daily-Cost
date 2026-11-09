@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { catIcon } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 
 // DOM Elements
@@ -526,7 +527,7 @@ function renderCosts() {
   costList.innerHTML = filtered.map(item => `
     <li class="cost-item" data-cat="${escapeHtml(item.category)}">
       <div class="cost-details">
-        <div class="cost-cat">${escapeHtml(t('cat.' + item.category))}</div>
+        <div class="cost-cat">${catIcon(item.category)}${escapeHtml(t('cat.' + item.category))}</div>
         <div class="cost-date">${item.date}</div>
         ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
       </div>
@@ -578,7 +579,7 @@ function renderChart() {
     .sort((a, b) => sums.get(b.value) - sums.get(a.value))
     .map(c => {
       const amt = sums.get(c.value);
-      return `<li style="--cat:${c.color}"><span class="legend-name">${t('cat.' + c.value)}</span>` +
+      return `<li data-cat="${c.value}" style="--cat:${c.color}"><span class="legend-name">${catIcon(c.value)}${t('cat.' + c.value)}</span>` +
         `<span class="legend-pct">${Math.round((amt / total) * 100)}%</span>` +
         `<span class="legend-amt">$${amt.toFixed(2)}</span></li>`;
     }).join('');
