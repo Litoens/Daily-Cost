@@ -615,19 +615,39 @@ function renderCosts() {
     return;
   }
 
-  costList.innerHTML = filtered.map(item => `
+  // Group by day (the query is already newest-first) with a subtotal per day.
+  const days = new Map();
+  filtered.forEach(item => {
+    if (!days.has(item.date)) days.set(item.date, []);
+    days.get(item.date).push(item);
+  });
+
+  costList.innerHTML = [...days].map(([date, items]) => {
+    const subtotal = items.reduce((sum, i) => sum + Number(i.amount), 0);
+    return `
+    <li class="day-head"><span>${dayLabel(date)}</span><span>$${subtotal.toFixed(2)}</span></li>
+    ${items.map(item => `
     <li class="cost-item" data-cat="${escapeHtml(item.category)}">
       <div class="cost-details">
         <div class="cost-cat">${catIcon(item.category)}${escapeHtml(t('cat.' + item.category))}</div>
-        <div class="cost-date">${item.date}</div>
         ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
       </div>
       <div class="cost-right">
         <span class="cost-amount">$${Number(item.amount).toFixed(2)}</span>
         <button class="btn btn-danger" onclick="deleteCost('${item.id}')">${t('history.delete')}</button>
       </div>
-    </li>
-  `).join('');
+    </li>`).join('')}`;
+  }).join('');
+}
+
+// "Today", "Yesterday", otherwise a short local date such as "Sat, 7 Nov" (year added when not this year).
+function dayLabel(iso) {
+  if (iso === localISO(0)) return t('day.today');
+  if (iso === localISO(1)) return t('day.yesterday');
+  const [y, m, d] = iso.split('-').map(Number);
+  const opts = { weekday: 'short', day: 'numeric', month: 'short' };
+  if (y !== new Date().getFullYear()) opts.year = 'numeric';
+  return new Intl.DateTimeFormat(getLang(), opts).format(new Date(y, m - 1, d));
 }
 
 // Donut chart: all-time spend per category (same scope as the "Total" figure).
