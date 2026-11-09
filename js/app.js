@@ -2,6 +2,8 @@ import { supabase } from './supabaseClient.js';
 import { catIcon, uiIcon, CATEGORIES } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 import { localISO } from './dates.js';
+import { formatMoney, toCents } from './money.js';
+import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown } from './expenses.js';
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -572,35 +574,31 @@ toastUndo.addEventListener('click', async () => {
   }
 });
 
+// Category filter: options are built from CATEGORIES so labels follow the language.
+function renderCategoryFilter() {
+  const selected = categoryFilter.value;
+  categoryFilter.querySelectorAll('option:not([value=""])').forEach((o) => o.remove());
+  CATEGORIES.forEach((c) => {
+    const opt = document.createElement('option');
+    opt.value = c.value;
+    opt.textContent = t('cat.' + c.value);
+    categoryFilter.append(opt);
+  });
+  categoryFilter.value = selected;
+}
+renderCategoryFilter();
+
 // Render & Filter Costs
 function renderCosts() {
-  const searchTerm = searchFilter.value.toLowerCase();
-  const selectedCategory = categoryFilter.value;
-
-  const filtered = costsCache.filter(item => {
-    const matchesSearch = item.category.toLowerCase().includes(searchTerm) ||
-                          (item.notes && item.notes.toLowerCase().includes(searchTerm)) ||
-                          item.date.includes(searchTerm);
-    const matchesCategory = selectedCategory === '' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  const filtered = filterExpenses(costsCache, {
+    search: searchFilter.value,
+    category: categoryFilter.value,
+    labelOf: (c) => t('cat.' + c)
   });
 
-  // Calculate stats
-  let totalAll = 0;
-  let totalMonth = 0;
-  const now = new Date();
-  const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-  costsCache.forEach(item => {
-    const amt = Number(item.amount);
-    totalAll += amt;
-    if (item.date && item.date.startsWith(currentYearMonth)) {
-      totalMonth += amt;
-    }
-  });
-
-  statTotal.textContent = `$${totalAll.toFixed(2)}`;
-  statMonth.textContent = `$${totalMonth.toFixed(2)}`;
+  const stats = computeStats(costsCache, localISO(0));
+  statTotal.textContent = formatMoney(stats.allCents);
+  statMonth.textContent = formatMoney(stats.monthCents);
 
   renderChart();
 
@@ -608,9 +606,9 @@ function renderCosts() {
   if (filtered.length === 0) {
     historySummary.classList.add('hidden');
   } else {
-    const shown = filtered.reduce((sum, i) => sum + Number(i.amount), 0);
+    const shown = groupByDay(filtered).reduce((sum, d) => sum + d.subtotalCents, 0);
     historySummary.textContent = t(filtered.length === 1 ? 'history.summaryOne' : 'history.summaryMany',
-      { n: filtered.length, total: `$${shown.toFixed(2)}` });
+      { n: filtered.length, total: formatMoney(shown) });
     historySummary.classList.remove('hidden');
   }
 
@@ -621,16 +619,8 @@ function renderCosts() {
   }
 
   // Group by day (the query is already newest-first) with a subtotal per day.
-  const days = new Map();
-  filtered.forEach(item => {
-    if (!days.has(item.date)) days.set(item.date, []);
-    days.get(item.date).push(item);
-  });
-
-  costList.innerHTML = [...days].map(([date, items]) => {
-    const subtotal = items.reduce((sum, i) => sum + Number(i.amount), 0);
-    return `
-    <li class="day-head"><span>${dayLabel(date)}</span><span>$${subtotal.toFixed(2)}</span></li>
+  costList.innerHTML = groupByDay(filtered).map(({ date, items, subtotalCents }) => `
+    <li class="day-head"><span>${dayLabel(date)}</span><span>${formatMoney(subtotalCents)}</span></li>
     ${items.map(item => `
     <li class="cost-item" data-cat="${escapeHtml(item.category)}">
       <div class="cost-details">
@@ -638,11 +628,10 @@ function renderCosts() {
         ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
       </div>
       <div class="cost-right">
-        <span class="cost-amount">$${Number(item.amount).toFixed(2)}</span>
+        <span class="cost-amount">${formatMoney(toCents(item.amount))}</span>
         <button class="btn btn-danger" onclick="deleteCost('${item.id}')">${t('history.delete')}</button>
       </div>
-    </li>`).join('')}`;
-  }).join('');
+    </li>`).join('')}`).join('');
 }
 
 // "Today", "Yesterday", otherwise a short local date such as "Sat, 7 Nov" (year added when not this year).
@@ -659,43 +648,33 @@ function dayLabel(iso) {
 
 function renderChart() {
   const body = document.getElementById('chart-body');
-  const sums = new Map(CATEGORIES.map(c => [c.value, 0]));
-  let total = 0;
-  costsCache.forEach(item => {
-    const amt = Number(item.amount);
-    const key = sums.has(item.category) ? item.category : 'Other';
-    sums.set(key, sums.get(key) + amt);
-    total += amt;
-  });
+  const { totalCents, rows } = categoryBreakdown(costsCache, CATEGORIES.map((c) => c.value));
 
-  if (total <= 0) {
+  if (totalCents <= 0) {
     body.innerHTML = `<p class="empty-state">${t('chart.empty')}</p>`;
     return;
   }
 
+  const colorOf = (value) => CATEGORIES.find((c) => c.value === value).color;
   const R = 15.9155; // circumference = 100, so dash lengths are percentages
   let offset = 25;   // start at 12 o'clock
-  const rows = CATEGORIES.filter(c => sums.get(c.value) > 0);
-  const arcs = rows.map(c => {
-    const pct = (sums.get(c.value) / total) * 100;
-    const arc = `<circle cx="21" cy="21" r="${R}" fill="none" stroke="${c.color}" stroke-width="6" stroke-dasharray="${pct} ${100 - pct}" stroke-dashoffset="${offset}"/>`;
-    offset -= pct;
+  const arcs = rows.map(r => {
+    const arc = `<circle cx="21" cy="21" r="${R}" fill="none" stroke="${colorOf(r.value)}" stroke-width="6" stroke-dasharray="${r.pct} ${100 - r.pct}" stroke-dashoffset="${offset}"/>`;
+    offset -= r.pct;
     return arc;
   }).join('');
 
-  const legend = rows
-    .sort((a, b) => sums.get(b.value) - sums.get(a.value))
-    .map(c => {
-      const amt = sums.get(c.value);
-      return `<li data-cat="${c.value}" style="--cat:${c.color}"><span class="legend-name">${catIcon(c.value)}${t('cat.' + c.value)}</span>` +
-        `<span class="legend-pct">${Math.round((amt / total) * 100)}%</span>` +
-        `<span class="legend-amt">$${amt.toFixed(2)}</span></li>`;
-    }).join('');
+  const legend = [...rows]
+    .sort((a, b) => b.cents - a.cents)
+    .map(r => `<li data-cat="${r.value}" style="--cat:${colorOf(r.value)}"><span class="legend-name">${catIcon(r.value)}${t('cat.' + r.value)}</span>` +
+      `<span class="legend-pct">${Math.round(r.pct)}%</span>` +
+      `<span class="legend-amt">${formatMoney(r.cents)}</span></li>`)
+    .join('');
 
   body.innerHTML = `
     <div class="donut">
       <svg viewBox="0 0 42 42" role="img" aria-label="${t('chart.aria')}">${arcs}</svg>
-      <div class="donut-center"><span>${t('chart.total')}</span><strong>$${total.toFixed(2)}</strong></div>
+      <div class="donut-center"><span>${t('chart.total')}</span><strong>${formatMoney(totalCents)}</strong></div>
     </div>
     <ul class="legend">${legend}</ul>`;
 }
@@ -703,16 +682,11 @@ function renderChart() {
 searchFilter.addEventListener('input', renderCosts);
 categoryFilter.addEventListener('change', renderCosts);
 
-function escapeHtml(str) {
-  return str.replace(/[&<>'"]/g, 
-    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-  );
-}
-
 // Re-render JS-built content when the language changes
 onLangChange(() => {
   document.querySelectorAll('.pw-toggle').forEach((b) => b.paint());
   renderCategoryPicker();
+  renderCategoryFilter();
   if (currentUser) {
     renderCosts();
     if (!accountView.classList.contains('hidden')) showAccount();
