@@ -49,6 +49,8 @@ export const DICT = {
 
     'form.title': 'Add Expense',
     'form.date': 'Date',
+    'form.today': 'Today',
+    'form.yesterday': 'Yesterday',
     'form.amount': 'Amount ($)',
     'form.category': 'Category',
     'form.notes': 'Notes (Optional)',
@@ -146,6 +148,8 @@ export const DICT = {
 
     'form.title': 'Agregar gasto',
     'form.date': 'Fecha',
+    'form.today': 'Hoy',
+    'form.yesterday': 'Ayer',
     'form.amount': 'Monto ($)',
     'form.category': 'Categoría',
     'form.notes': 'Notas (opcional)',

@@ -32,8 +32,26 @@ let costsCache = [];
 // Set before anything else so the recovery session is never mistaken for a login.
 let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
 
-// Set default date to today in cost form
-costDateInput.valueAsDate = new Date();
+// Local calendar date as YYYY-MM-DD, `daysAgo` days back. (valueAsDate would use UTC and
+// flip to tomorrow in the evening for users west of Greenwich.)
+function localISO(daysAgo = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Date shortcuts: Today / Yesterday, highlighted while the date field matches.
+const dateToday = document.getElementById('date-today');
+const dateYesterday = document.getElementById('date-yesterday');
+function syncDateShortcuts() {
+  dateToday.setAttribute('aria-pressed', String(costDateInput.value === localISO(0)));
+  dateYesterday.setAttribute('aria-pressed', String(costDateInput.value === localISO(1)));
+}
+function setCostDate(daysAgo) { costDateInput.value = localISO(daysAgo); syncDateShortcuts(); }
+dateToday.addEventListener('click', () => setCostDate(0));
+dateYesterday.addEventListener('click', () => setCostDate(1));
+costDateInput.addEventListener('input', syncDateShortcuts);
+setCostDate(0);
 
 // Tint the add-expense card with the chosen category's colour.
 const costCard = costForm.closest('.card');
@@ -474,7 +492,7 @@ costForm.addEventListener('submit', async (e) => {
     showCostMessage(t('form.added'), 'success');
     costForm.reset();
     delete costCard.dataset.cat;
-    costDateInput.valueAsDate = new Date();
+    setCostDate(0);
     fetchCosts();
     setTimeout(() => costMessage.classList.add('hidden'), 3000);
   }

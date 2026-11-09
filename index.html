@@ -138,7 +138,13 @@
         <h2 data-i18n="form.title">Add Expense</h2>
         <form id="cost-form">
           <div class="form-group">
-            <label for="cost-date" data-i18n="form.date">Date</label>
+            <div class="field-row">
+              <label for="cost-date" data-i18n="form.date">Date</label>
+              <div class="date-shortcuts">
+                <button type="button" id="date-today" class="chip-btn" data-i18n="form.today">Today</button>
+                <button type="button" id="date-yesterday" class="chip-btn" data-i18n="form.yesterday">Yesterday</button>
+              </div>
+            </div>
             <input type="date" id="cost-date" required>
           </div>
 
