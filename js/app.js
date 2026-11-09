@@ -1,4 +1,6 @@
 import { supabase } from './supabaseClient.js';
+import { catIcon } from './icons.js';
+import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -46,9 +48,10 @@ tabLogin.addEventListener('click', () => {
   isSignUpMode = false;
   tabLogin.classList.add('active');
   tabSignup.classList.remove('active');
-  authTitle.textContent = 'Welcome Back';
-  authDesc.textContent = 'Log in securely to manage your daily expenses';
-  authSubmitBtn.textContent = 'Sign In';
+  authTitle.dataset.i18n = 'auth.welcome';
+  authDesc.dataset.i18n = 'auth.welcomeDesc';
+  authSubmitBtn.dataset.i18n = 'auth.signIn';
+  applyTranslations();
   authMessage.classList.add('hidden');
 });
 
@@ -56,9 +59,10 @@ tabSignup.addEventListener('click', () => {
   isSignUpMode = true;
   tabSignup.classList.add('active');
   tabLogin.classList.remove('active');
-  authTitle.textContent = 'Create Account';
-  authDesc.textContent = 'Sign up to start tracking your daily costs securely';
-  authSubmitBtn.textContent = 'Sign Up';
+  authTitle.dataset.i18n = 'auth.create';
+  authDesc.dataset.i18n = 'auth.createDesc';
+  authSubmitBtn.dataset.i18n = 'auth.signUp';
+  applyTranslations();
   authMessage.classList.add('hidden');
 });
 
@@ -105,7 +109,7 @@ forgotForm.addEventListener('submit', async (e) => {
   forgotMessage.classList.add('hidden');
 
   if (!isValidEmail(email)) {
-    showForgotMessage('Please enter a valid email address.', 'error');
+    showForgotMessage(t('auth.invalidEmail'), 'error');
     return;
   }
 
@@ -116,7 +120,7 @@ forgotForm.addEventListener('submit', async (e) => {
   if (error) {
     showForgotMessage(error.message, 'error');
   } else {
-    showForgotMessage('Password reset email sent! Please check your inbox for the reset link.', 'success');
+    showForgotMessage(t('forgot.sent'), 'success');
   }
 });
 
@@ -135,12 +139,12 @@ resetPasswordForm.addEventListener('submit', async (e) => {
   resetPasswordMessage.classList.add('hidden');
 
   if (!isValidPassword(newPassword)) {
-    showResetPasswordMessage('Password must be 4 to 16 characters long and contain both letters and numbers.', 'error');
+    showResetPasswordMessage(t('auth.invalidPassword'), 'error');
     return;
   }
 
   if (newPassword !== confirmPassword) {
-    showResetPasswordMessage('Passwords do not match.', 'error');
+    showResetPasswordMessage(t('setpw.mismatch'), 'error');
     return;
   }
 
@@ -151,7 +155,7 @@ resetPasswordForm.addEventListener('submit', async (e) => {
   if (error) {
     showResetPasswordMessage(error.message, 'error');
   } else {
-    showResetPasswordMessage('Password updated successfully! Redirecting...', 'success');
+    showResetPasswordMessage(t('setpw.done'), 'success');
     recoveryMode = false;
     await supabase.auth.signOut(); // force a fresh sign-in with the new password
     setTimeout(() => {
@@ -159,7 +163,7 @@ resetPasswordForm.addEventListener('submit', async (e) => {
       resetPasswordCard.classList.add('hidden');
       authCardMain.classList.remove('hidden');
       authView.classList.remove('hidden');
-      showAuthMessage('Password updated successfully. Please sign in with your new password.', 'success');
+      showAuthMessage(t('auth.updatedSignIn'), 'success');
     }, 1500);
   }
 });
@@ -180,8 +184,8 @@ async function initSession() {
     authCardMain.classList.remove('hidden');
     forgotCard.classList.add('hidden');
     resetPasswordCard.classList.add('hidden');
-    const decodedDesc = errorDesc ? decodeURIComponent(errorDesc.replace(/\+/g, ' ')) : 'Password reset link is invalid or has expired.';
-    showAuthMessage(`Reset link error: ${decodedDesc} Please make sure your Supabase Site URL matches https://litoens.github.io/Daily-Cost/ and request a new reset link.`, 'error');
+    const decodedDesc = errorDesc ? decodeURIComponent(errorDesc.replace(/\+/g, ' ')) : t('auth.linkExpired');
+    showAuthMessage(t('auth.linkError', { desc: decodedDesc }), 'error');
     window.history.replaceState({}, document.title, window.location.pathname);
     return;
   }
@@ -274,13 +278,13 @@ authForm.addEventListener('submit', async (e) => {
 
   // Validate Email
   if (!isValidEmail(email)) {
-    showAuthMessage('Please enter a valid email address.', 'error');
+    showAuthMessage(t('auth.invalidEmail'), 'error');
     return;
   }
 
   // Validate Password
   if (!isValidPassword(password)) {
-    showAuthMessage('Password must be 4 to 16 characters long and contain both letters and numbers.', 'error');
+    showAuthMessage(t('auth.invalidPassword'), 'error');
     return;
   }
 
@@ -289,7 +293,7 @@ authForm.addEventListener('submit', async (e) => {
     if (error) {
       showAuthMessage(error.message, 'error');
     } else {
-      showAuthMessage('Account created successfully! Please check your email for confirmation or sign in.', 'success');
+      showAuthMessage(t('auth.created'), 'success');
     }
   } else {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -346,7 +350,7 @@ function showPage(page) {
 function showExpenses() { showPage('expenses'); }
 
 function showAccount() {
-  const fmt = (d) => d ? new Date(d).toLocaleString() : '-';
+  const fmt = (d) => d ? new Date(d).toLocaleString(getLang()) : '-';
   document.getElementById('account-email').textContent = currentUser.email;
   document.getElementById('account-created').textContent = fmt(currentUser.created_at);
   document.getElementById('account-last-signin').textContent = fmt(currentUser.last_sign_in_at);
@@ -378,21 +382,21 @@ changePasswordForm.addEventListener('submit', async (e) => {
   const confirm = document.getElementById('account-confirm-password').value;
 
   if (!isValidPassword(next)) {
-    showChangePasswordMessage('New password must be 4 to 16 characters long and contain both letters and numbers.', 'error');
+    showChangePasswordMessage(t('pw.invalidNew'), 'error');
     return;
   }
   if (next !== confirm) {
-    showChangePasswordMessage('New passwords do not match.', 'error');
+    showChangePasswordMessage(t('pw.mismatch'), 'error');
     return;
   }
   if (next === current) {
-    showChangePasswordMessage('New password must be different from the current one.', 'error');
+    showChangePasswordMessage(t('pw.same'), 'error');
     return;
   }
 
   const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: current });
   if (verifyError) {
-    showChangePasswordMessage('Current password is incorrect.', 'error');
+    showChangePasswordMessage(t('pw.wrongCurrent'), 'error');
     return;
   }
 
@@ -403,7 +407,7 @@ changePasswordForm.addEventListener('submit', async (e) => {
   }
   await supabase.auth.signOut({ scope: 'others' });
   changePasswordForm.reset();
-  showChangePasswordMessage('Password updated. Other devices have been signed out.', 'success');
+  showChangePasswordMessage(t('pw.updated'), 'success');
 });
 
 // Forgot the current password: reuse the email reset flow.
@@ -411,7 +415,7 @@ document.getElementById('send-reset-link').addEventListener('click', async () =>
   const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
     redirectTo: window.location.origin + window.location.pathname
   });
-  showChangePasswordMessage(error ? error.message : `Reset link sent to ${currentUser.email}. Check your inbox.`, error ? 'error' : 'success');
+  showChangePasswordMessage(error ? error.message : t('pw.linkSent', { email: currentUser.email }), error ? 'error' : 'success');
 });
 
 // Fetch Costs
@@ -425,7 +429,7 @@ async function fetchCosts() {
 
   if (error) {
     console.error('Error fetching costs:', error);
-    costList.innerHTML = `<li class="empty-state">Failed to load expenses.</li>`;
+    costList.innerHTML = `<li class="empty-state">${t('history.failed')}</li>`;
     return;
   }
 
@@ -456,7 +460,7 @@ costForm.addEventListener('submit', async (e) => {
   if (error) {
     showCostMessage(error.message, 'error');
   } else {
-    showCostMessage('Expense added successfully!', 'success');
+    showCostMessage(t('form.added'), 'success');
     costForm.reset();
     delete costCard.dataset.cat;
     costDateInput.valueAsDate = new Date();
@@ -472,11 +476,11 @@ function showCostMessage(text, type) {
 
 // Delete Cost
 window.deleteCost = async function(id) {
-  if (!confirm('Are you sure you want to delete this expense?')) return;
+  if (!confirm(t('history.confirmDelete'))) return;
 
   const { error } = await supabase.from('costs').delete().eq('id', id);
   if (error) {
-    alert('Failed to delete expense: ' + error.message);
+    alert(t('history.deleteFailed', { msg: error.message }));
   } else {
     fetchCosts();
   }
@@ -516,20 +520,20 @@ function renderCosts() {
 
   // Render list
   if (filtered.length === 0) {
-    costList.innerHTML = `<li class="empty-state">No expenses found.</li>`;
+    costList.innerHTML = `<li class="empty-state">${t('history.none')}</li>`;
     return;
   }
 
   costList.innerHTML = filtered.map(item => `
     <li class="cost-item" data-cat="${escapeHtml(item.category)}">
       <div class="cost-details">
-        <div class="cost-cat">${escapeHtml(item.category)}</div>
+        <div class="cost-cat">${catIcon(item.category)}${escapeHtml(t('cat.' + item.category))}</div>
         <div class="cost-date">${item.date}</div>
         ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
       </div>
       <div class="cost-right">
         <span class="cost-amount">$${Number(item.amount).toFixed(2)}</span>
-        <button class="btn btn-danger" onclick="deleteCost('${item.id}')">Delete</button>
+        <button class="btn btn-danger" onclick="deleteCost('${item.id}')">${t('history.delete')}</button>
       </div>
     </li>
   `).join('');
@@ -537,12 +541,12 @@ function renderCosts() {
 
 // Donut chart: all-time spend per category (same scope as the "Total" figure).
 const CHART_CATS = [
-  { value: 'Meat', label: 'Meat & Groceries', color: 'var(--cat-meat)' },
-  { value: 'Food & Dining', label: 'Food & Dining', color: 'var(--cat-food)' },
-  { value: 'Transport', label: 'Transport', color: 'var(--cat-transport)' },
-  { value: 'Utilities', label: 'Utilities & Bills', color: 'var(--cat-utilities)' },
-  { value: 'Entertainment', label: 'Entertainment', color: 'var(--cat-fun)' },
-  { value: 'Other', label: 'Other', color: 'var(--cat-other)' }
+  { value: 'Meat', color: 'var(--cat-meat)' },
+  { value: 'Food & Dining', color: 'var(--cat-food)' },
+  { value: 'Transport', color: 'var(--cat-transport)' },
+  { value: 'Utilities', color: 'var(--cat-utilities)' },
+  { value: 'Entertainment', color: 'var(--cat-fun)' },
+  { value: 'Other', color: 'var(--cat-other)' }
 ];
 
 function renderChart() {
@@ -557,7 +561,7 @@ function renderChart() {
   });
 
   if (total <= 0) {
-    body.innerHTML = '<p class="empty-state">Add an expense to see the breakdown.</p>';
+    body.innerHTML = `<p class="empty-state">${t('chart.empty')}</p>`;
     return;
   }
 
@@ -575,15 +579,15 @@ function renderChart() {
     .sort((a, b) => sums.get(b.value) - sums.get(a.value))
     .map(c => {
       const amt = sums.get(c.value);
-      return `<li style="--cat:${c.color}"><span class="legend-name">${c.label}</span>` +
+      return `<li data-cat="${c.value}" style="--cat:${c.color}"><span class="legend-name">${catIcon(c.value)}${t('cat.' + c.value)}</span>` +
         `<span class="legend-pct">${Math.round((amt / total) * 100)}%</span>` +
         `<span class="legend-amt">$${amt.toFixed(2)}</span></li>`;
     }).join('');
 
   body.innerHTML = `
     <div class="donut">
-      <svg viewBox="0 0 42 42" role="img" aria-label="Spending by category">${arcs}</svg>
-      <div class="donut-center"><span>Total</span><strong>$${total.toFixed(2)}</strong></div>
+      <svg viewBox="0 0 42 42" role="img" aria-label="${t('chart.aria')}">${arcs}</svg>
+      <div class="donut-center"><span>${t('chart.total')}</span><strong>$${total.toFixed(2)}</strong></div>
     </div>
     <ul class="legend">${legend}</ul>`;
 }
@@ -597,5 +601,14 @@ function escapeHtml(str) {
   );
 }
 
+// Re-render JS-built content when the language changes
+onLangChange(() => {
+  if (currentUser) {
+    renderCosts();
+    if (!accountView.classList.contains('hidden')) showAccount();
+  }
+});
+
 // Initialize on load
+applyTranslations();
 initSession();

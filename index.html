@@ -13,32 +13,36 @@
 
   <!-- AUTH VIEW -->
   <div id="auth-view" class="auth-wrapper">
+    <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="lang.label">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="es" aria-pressed="false">ES</button>
+    </div>
     <!-- Main Auth Card (Sign In / Sign Up) -->
     <div class="auth-card" id="auth-card-main">
-      <h1 id="auth-title">Welcome Back</h1>
-      <p id="auth-desc">Log in securely to manage your daily expenses</p>
+      <h1 id="auth-title" data-i18n="auth.welcome">Welcome Back</h1>
+      <p id="auth-desc" data-i18n="auth.welcomeDesc">Log in securely to manage your daily expenses</p>
 
       <div class="auth-tabs">
-        <button id="tab-login" class="tab-btn active">Sign In</button>
-        <button id="tab-signup" class="tab-btn">Sign Up</button>
+        <button id="tab-login" class="tab-btn active" data-i18n="auth.signIn">Sign In</button>
+        <button id="tab-signup" class="tab-btn" data-i18n="auth.signUp">Sign Up</button>
       </div>
 
       <form id="auth-form">
         <div class="form-group">
-          <label for="email">Email address</label>
+          <label for="email" data-i18n="auth.email">Email address</label>
           <input type="email" id="email" required placeholder="you@example.com" autocomplete="email">
         </div>
 
         <div class="form-group">
-          <label for="password">Password</label>
+          <label for="password" data-i18n="auth.password">Password</label>
           <input type="password" id="password" required placeholder="••••••••">
         </div>
 
         <div id="forgot-link-container" class="auth-aside">
-          <a href="#" id="forgot-link" class="text-link">Forgot password?</a>
+          <a href="#" id="forgot-link" class="text-link" data-i18n="auth.forgot">Forgot password?</a>
         </div>
 
-        <button type="submit" id="auth-submit-btn" class="btn">Sign In</button>
+        <button type="submit" id="auth-submit-btn" class="btn" data-i18n="auth.signIn">Sign In</button>
       </form>
 
       <div id="auth-message" class="message hidden"></div>
@@ -46,42 +50,42 @@
 
     <!-- Forgot Password Card -->
     <div class="auth-card hidden" id="forgot-card">
-      <h1>Reset Password</h1>
-      <p>Enter your email address and we'll send you a link to reset your password.</p>
+      <h1 data-i18n="forgot.title">Reset Password</h1>
+      <p data-i18n="forgot.desc">Enter your email address and we'll send you a link to reset your password.</p>
 
       <form id="forgot-form">
         <div class="form-group">
-          <label for="forgot-email">Email address</label>
+          <label for="forgot-email" data-i18n="auth.email">Email address</label>
           <input type="email" id="forgot-email" required placeholder="you@example.com" autocomplete="email">
         </div>
 
-        <button type="submit" class="btn">Send Reset Link</button>
+        <button type="submit" class="btn" data-i18n="forgot.send">Send Reset Link</button>
       </form>
 
       <div id="forgot-message" class="message hidden"></div>
 
       <div class="auth-back">
-        <a href="#" id="back-to-login-link" class="text-link">&larr; Back to Sign In</a>
+        <a href="#" id="back-to-login-link" class="text-link" data-i18n="auth.back">&larr; Back to Sign In</a>
       </div>
     </div>
 
     <!-- Set New Password Card -->
     <div class="auth-card hidden" id="reset-password-card">
-      <h1>Set New Password</h1>
-      <p>Please enter your new password below.</p>
+      <h1 data-i18n="setpw.title">Set New Password</h1>
+      <p data-i18n="setpw.desc">Please enter your new password below.</p>
 
       <form id="reset-password-form">
         <div class="form-group">
-          <label for="new-password">New Password</label>
+          <label for="new-password" data-i18n="setpw.new">New Password</label>
           <input type="password" id="new-password" required placeholder="••••••••" autocomplete="new-password">
         </div>
 
         <div class="form-group">
-          <label for="confirm-password">Confirm New Password</label>
+          <label for="confirm-password" data-i18n="setpw.confirm">Confirm New Password</label>
           <input type="password" id="confirm-password" required placeholder="••••••••" autocomplete="new-password">
         </div>
 
-        <button type="submit" class="btn">Update Password</button>
+        <button type="submit" class="btn" data-i18n="setpw.update">Update Password</button>
       </form>
 
       <div id="reset-password-message" class="message hidden"></div>
@@ -97,13 +101,17 @@
             <h1>Daily Costs</h1>
           </div>
           <div class="user-info">
+            <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="lang.label">
+              <button type="button" data-lang="en" aria-pressed="true">EN</button>
+              <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
             <div class="profile">
-              <button id="profile-btn" class="profile-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu" aria-label="Account menu"><span id="profile-initial" aria-hidden="true"></span></button>
+              <button id="profile-btn" class="profile-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu" aria-label="Account menu" data-i18n-aria="nav.account"><span id="profile-initial" aria-hidden="true"></span></button>
               <div id="profile-menu" class="profile-menu hidden" role="menu">
                 <span id="user-email-display" class="user-email" title=""></span>
-                <button id="menu-account" class="menu-item" role="menuitem">Account</button>
-                <button id="menu-reset" class="menu-item" role="menuitem">Reset password</button>
-                <button id="logout-btn" class="menu-item" role="menuitem">Sign Out</button>
+                <button id="menu-account" class="menu-item" role="menuitem" data-i18n="nav.accountItem">Account</button>
+                <button id="menu-reset" class="menu-item" role="menuitem" data-i18n="nav.resetPassword">Reset password</button>
+                <button id="logout-btn" class="menu-item" role="menuitem" data-i18n="nav.signOut">Sign Out</button>
               </div>
             </div>
           </div>
@@ -112,11 +120,11 @@
         <!-- Stats Summary -->
         <div id="stats-grid" class="stats-grid">
           <div class="stat-card">
-            <h2>Total Spent (All Time)</h2>
+            <h2 data-i18n="stats.total">Total Spent (All Time)</h2>
             <div id="stat-total" class="amount">$0.00</div>
           </div>
           <div class="stat-card">
-            <h2>This Month</h2>
+            <h2 data-i18n="stats.month">This Month</h2>
             <div id="stat-month" class="amount">$0.00</div>
           </div>
         </div>
@@ -127,67 +135,67 @@
     <main id="expenses-view" class="wrap dashboard-grid">
       <!-- Add Cost Form -->
       <div class="card card-entry">
-        <h2>Add Expense</h2>
+        <h2 data-i18n="form.title">Add Expense</h2>
         <form id="cost-form">
           <div class="form-group">
-            <label for="cost-date">Date</label>
+            <label for="cost-date" data-i18n="form.date">Date</label>
             <input type="date" id="cost-date" required>
           </div>
 
           <div class="form-group">
-            <label for="cost-amount">Amount ($)</label>
+            <label for="cost-amount" data-i18n="form.amount">Amount ($)</label>
             <input type="number" id="cost-amount" step="0.01" min="0" required placeholder="20.00" inputmode="decimal">
           </div>
 
           <div class="form-group">
-            <label for="cost-category">Category</label>
+            <label for="cost-category" data-i18n="form.category">Category</label>
             <select id="cost-category" required>
-              <option value="">Select category</option>
-              <option value="Meat">Meat &amp; Groceries</option>
-              <option value="Food & Dining">Food &amp; Dining</option>
-              <option value="Transport">Transport</option>
-              <option value="Utilities">Utilities &amp; Bills</option>
-              <option value="Entertainment">Entertainment</option>
-              <option value="Other">Other</option>
+              <option value="" data-i18n="form.selectCategory">Select category</option>
+              <option value="Meat" data-i18n="cat.Meat">Meat &amp; Groceries</option>
+              <option value="Food & Dining" data-i18n="cat.Food & Dining">Food &amp; Dining</option>
+              <option value="Transport" data-i18n="cat.Transport">Transport</option>
+              <option value="Utilities" data-i18n="cat.Utilities">Utilities &amp; Bills</option>
+              <option value="Entertainment" data-i18n="cat.Entertainment">Entertainment</option>
+              <option value="Other" data-i18n="cat.Other">Other</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="cost-notes">Notes (Optional)</label>
-            <textarea id="cost-notes" rows="2" placeholder="e.g. 2kg of fresh beef"></textarea>
+            <label for="cost-notes" data-i18n="form.notes">Notes (Optional)</label>
+            <textarea id="cost-notes" rows="2" placeholder="e.g. 2kg of fresh beef" data-i18n-placeholder="form.notesPlaceholder"></textarea>
           </div>
 
-          <button type="submit" class="btn">Add Expense</button>
+          <button type="submit" class="btn" data-i18n="form.submit">Add Expense</button>
           <div id="cost-message" class="message hidden"></div>
         </form>
       </div>
 
       <!-- Spending breakdown -->
       <div class="card card-chart">
-        <h2>Where it goes</h2>
+        <h2 data-i18n="chart.title">Where it goes</h2>
         <div id="chart-body" class="chart-body">
-          <p class="empty-state">Add an expense to see the breakdown.</p>
+          <p class="empty-state" data-i18n="chart.empty">Add an expense to see the breakdown.</p>
         </div>
       </div>
 
       <!-- Cost History -->
       <div class="card card-history">
-        <h2>Expense History</h2>
+        <h2 data-i18n="history.title">Expense History</h2>
         <div class="filter-bar">
-          <input type="text" id="search-filter" placeholder="Search category or notes..." aria-label="Search expenses">
-          <select id="category-filter" aria-label="Filter by category">
-            <option value="">All Categories</option>
-            <option value="Meat">Meat &amp; Groceries</option>
-            <option value="Food & Dining">Food &amp; Dining</option>
-            <option value="Transport">Transport</option>
-            <option value="Utilities">Utilities &amp; Bills</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Other">Other</option>
+          <input type="text" id="search-filter" placeholder="Search category or notes..." data-i18n-placeholder="history.search" aria-label="Search expenses" data-i18n-aria="history.searchAria">
+          <select id="category-filter" aria-label="Filter by category" data-i18n-aria="history.filterAria">
+            <option value="" data-i18n="history.all">All Categories</option>
+            <option value="Meat" data-i18n="cat.Meat">Meat &amp; Groceries</option>
+            <option value="Food & Dining" data-i18n="cat.Food & Dining">Food &amp; Dining</option>
+            <option value="Transport" data-i18n="cat.Transport">Transport</option>
+            <option value="Utilities" data-i18n="cat.Utilities">Utilities &amp; Bills</option>
+            <option value="Entertainment" data-i18n="cat.Entertainment">Entertainment</option>
+            <option value="Other" data-i18n="cat.Other">Other</option>
           </select>
         </div>
 
         <ul id="cost-list" class="cost-list">
-          <li class="empty-state">Loading expenses...</li>
+          <li class="empty-state" data-i18n="history.loading">Loading expenses...</li>
         </ul>
       </div>
     </main>
@@ -195,15 +203,15 @@
     <!-- Account page -->
     <main id="account-view" class="wrap account-grid hidden">
       <div class="account-head">
-        <button id="account-back" class="text-link link-btn">&larr; Back to expenses</button>
+        <button id="account-back" class="text-link link-btn" data-i18n="nav.back">&larr; Back to expenses</button>
       </div>
 
       <div class="card">
-        <h2>Account</h2>
+        <h2 data-i18n="account.title">Account</h2>
         <dl class="account-info">
-          <dt>Email</dt><dd id="account-email"></dd>
-          <dt>Member since</dt><dd id="account-created"></dd>
-          <dt>Last sign-in</dt><dd id="account-last-signin"></dd>
+          <dt data-i18n="account.email">Email</dt><dd id="account-email"></dd>
+          <dt data-i18n="account.since">Member since</dt><dd id="account-created"></dd>
+          <dt data-i18n="account.lastSignIn">Last sign-in</dt><dd id="account-last-signin"></dd>
         </dl>
       </div>
     </main>
@@ -211,34 +219,34 @@
     <!-- Reset password page -->
     <main id="password-view" class="wrap account-grid hidden">
       <div class="account-head">
-        <button id="password-back" class="text-link link-btn">&larr; Back to expenses</button>
+        <button id="password-back" class="text-link link-btn" data-i18n="nav.back">&larr; Back to expenses</button>
       </div>
 
       <div class="card">
-        <h2>Reset password</h2>
+        <h2 data-i18n="pw.title">Reset password</h2>
         <form id="change-password-form">
           <div class="form-group">
-            <label for="current-password">Current password</label>
+            <label for="current-password" data-i18n="pw.current">Current password</label>
             <input type="password" id="current-password" required autocomplete="current-password">
           </div>
           <div class="form-group">
-            <label for="account-new-password">New password</label>
+            <label for="account-new-password" data-i18n="pw.new">New password</label>
             <input type="password" id="account-new-password" required autocomplete="new-password">
           </div>
           <div class="form-group">
-            <label for="account-confirm-password">Confirm new password</label>
+            <label for="account-confirm-password" data-i18n="pw.confirm">Confirm new password</label>
             <input type="password" id="account-confirm-password" required autocomplete="new-password">
           </div>
-          <button type="submit" class="btn">Update Password</button>
+          <button type="submit" class="btn" data-i18n="pw.update">Update Password</button>
         </form>
         <div id="change-password-message" class="message hidden"></div>
-        <p class="account-note">Forgot your current password? <button id="send-reset-link" class="text-link link-btn">Email me a reset link</button></p>
+        <p class="account-note"><span data-i18n="pw.forgotCurrent">Forgot your current password?</span> <button id="send-reset-link" class="text-link link-btn" data-i18n="pw.emailLink">Email me a reset link</button></p>
       </div>
     </main>
   </div>
 
   <footer>
-    <p>&copy; 2026 Daily Cost Tracker. Securely powered by Supabase &amp; GitHub Pages.</p>
+    <p data-i18n="footer.text">&copy; 2026 Daily Cost Tracker. Securely powered by Supabase &amp; GitHub Pages.</p>
   </footer>
 
   <!-- App Script -->

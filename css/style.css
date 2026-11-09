@@ -339,7 +339,6 @@ header {
   padding: 0.35rem 0; font-size: 0.8125rem; border-bottom: 1px solid var(--line);
 }
 .legend-name { display: flex; align-items: center; gap: 0.5rem; min-width: 0; font-weight: 600; }
-.legend-name::before { content: ''; flex: none; width: 0.65rem; height: 0.65rem; border-radius: 2px; background: var(--cat); }
 .legend-pct { color: var(--text-muted); }
 .legend-amt { font-weight: 800; min-width: 5ch; text-align: right; }
 
@@ -379,19 +378,25 @@ header {
   font-weight: 700;
 }
 
-.cost-cat::before {
-  content: '';
+/* Category chip: solid category colour with an outline icon. */
+.cat-ico {
+  --on-cat: #fff;
   flex: none;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 6px;
   background: var(--cat);
+  color: var(--on-cat);
 }
+.cat-ico svg { width: 1rem; height: 1rem; }
+[data-cat="Food & Dining"] .cat-ico { --on-cat: var(--ink); }
 
 .cost-date, .cost-notes {
   font-size: 0.8125rem;
   color: var(--text-muted);
-  padding-left: 1.25rem;
+  padding-left: 2.3rem;
   overflow-wrap: anywhere;
 }
 
@@ -513,3 +518,32 @@ footer {
 .account-info dd { font-weight: 600; overflow-wrap: anywhere; }
 
 .account-note { margin-top: 1.25rem; font-size: 0.875rem; color: var(--text-muted); }
+
+/* ---------- Language switcher ---------- */
+.lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.lang-switch button {
+  padding: 0.35rem 0.65rem;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lang-switch button + button { border-left: 1px solid var(--line); }
+.lang-switch button:hover { color: var(--ink); background: var(--ground); }
+.lang-switch button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.lang-switch button:focus-visible { outline-offset: -3px; }
+@media (pointer: coarse) { .lang-switch button { min-height: 44px; min-width: 44px; } }
+
+.auth-wrapper { position: relative; }
+.auth-wrapper > .lang-switch { position: absolute; top: 1rem; right: 1rem; }
+.band .lang-switch { background: transparent; border-color: var(--on-ink-muted); }
+.band .lang-switch button { color: var(--on-ink-muted); }
+.band .lang-switch button + button { border-left-color: var(--on-ink-muted); }
+.band .lang-switch button:hover { background: var(--ink-2); color: var(--on-ink); }
+.band .lang-switch button[aria-pressed="true"] { background: var(--accent); color: var(--ink); }
+.band .lang-switch button:focus-visible { outline-color: var(--accent); }

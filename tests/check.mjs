@@ -20,3 +20,24 @@ if (dupes.length) {
 }
 
 console.log(`OK: ${new Set(used).size} ids found, no duplicates`);
+
+// i18n: both dictionaries have the same keys, and every key used in index.html / app.js exists.
+const { DICT } = await import('../js/i18n.js');
+const enKeys = Object.keys(DICT.en);
+const esKeys = Object.keys(DICT.es);
+const diff = [...enKeys.filter((k) => !esKeys.includes(k)), ...esKeys.filter((k) => !enKeys.includes(k))];
+if (diff.length) {
+  console.error('i18n keys not in both languages:', diff.join(', '));
+  process.exit(1);
+}
+const usedKeys = [
+  ...[...html.matchAll(/data-i18n(?:-placeholder|-aria)?="([^"]+)"/g)].map((m) => m[1]),
+  ...[...js.matchAll(/\bt\('([^']+)'[,)]/g)].map((m) => m[1]),
+  ...[...js.matchAll(/dataset\.i18n = '([^']+)'/g)].map((m) => m[1])
+];
+const unknown = [...new Set(usedKeys)].filter((k) => !enKeys.includes(k));
+if (unknown.length) {
+  console.error('i18n keys used but not defined:', unknown.join(', '));
+  process.exit(1);
+}
+console.log(`OK: ${enKeys.length} i18n keys in en and es`);
