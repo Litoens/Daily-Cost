@@ -5,9 +5,18 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- **Spanish translation and language switcher (EN | ES)** on the sign-in screen and in the dashboard header. The choice is remembered in the browser; first visit follows the browser language. Texts live in `js/i18n.js`; CI checks that both languages have the same keys. Supabase's own error messages remain in English.
-- **Category icons:** each category has an outline icon in a colour chip, in the history list and the chart legend.
-- **Spend-by-category donut chart** between the add-expense form and the history; the add-expense panel is now the most prominent.
+- **Category buttons:** the category dropdown in the add-expense form is now six icon buttons (keyboard accessible, still required).
+- **Date shortcuts:** "Today" and "Yesterday" buttons next to the date field.
+- **Show/hide password** toggle on every password field.
+- **Undo toast** after deleting an expense (replaces the browser confirmation); Undo restores the same row.
+- **History grouped by day** with a daily subtotal (Today, Yesterday, dates) and sticky day headers.
+- **Filter summary:** count and total for the current search and category filter.
+- **Spanish translation and language switcher (EN | ES)**, remembered in the browser. Texts live in `js/i18n.js`; CI checks both languages have the same keys. Supabase's own error messages remain in English.
+- **Category icons** in a colour chip in the history list and chart legend, plus the **spend-by-category donut chart**.
+
+### Changed
+- The amount field is focused again after saving, ready for the next expense.
+- The date field now defaults to the user's local today (it could show tomorrow in the evening before).
 
 ## [1.3.2] - 2026-11-06
 

@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient.js';
-import { catIcon } from './icons.js';
+import { catIcon, uiIcon, CATEGORIES } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 
 // DOM Elements
@@ -16,11 +16,12 @@ const userEmailDisplay = document.getElementById('user-email-display');
 const costForm = document.getElementById('cost-form');
 const costDateInput = document.getElementById('cost-date');
 const costAmountInput = document.getElementById('cost-amount');
-const costCategoryInput = document.getElementById('cost-category');
+const costCategoryPicker = document.getElementById('cost-category');
 const costNotesInput = document.getElementById('cost-notes');
 const costMessage = document.getElementById('cost-message');
 
 const costList = document.getElementById('cost-list');
+const historySummary = document.getElementById('history-summary');
 const statTotal = document.getElementById('stat-total');
 const statMonth = document.getElementById('stat-month');
 const searchFilter = document.getElementById('search-filter');
@@ -32,12 +33,68 @@ let costsCache = [];
 // Set before anything else so the recovery session is never mistaken for a login.
 let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
 
-// Set default date to today in cost form
-costDateInput.valueAsDate = new Date();
+// Local calendar date as YYYY-MM-DD, `daysAgo` days back. (valueAsDate would use UTC and
+// flip to tomorrow in the evening for users west of Greenwich.)
+function localISO(daysAgo = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Date shortcuts: Today / Yesterday, highlighted while the date field matches.
+const dateToday = document.getElementById('date-today');
+const dateYesterday = document.getElementById('date-yesterday');
+function syncDateShortcuts() {
+  dateToday.setAttribute('aria-pressed', String(costDateInput.value === localISO(0)));
+  dateYesterday.setAttribute('aria-pressed', String(costDateInput.value === localISO(1)));
+}
+function setCostDate(daysAgo) { costDateInput.value = localISO(daysAgo); syncDateShortcuts(); }
+dateToday.addEventListener('click', () => setCostDate(0));
+dateYesterday.addEventListener('click', () => setCostDate(1));
+costDateInput.addEventListener('input', syncDateShortcuts);
+setCostDate(0);
 
 // Tint the add-expense card with the chosen category's colour.
 const costCard = costForm.closest('.card');
-costCategoryInput.addEventListener('change', () => { costCard.dataset.cat = costCategoryInput.value; });
+
+// Category picker: one radio chip per category (native radios give keyboard and `required` for free).
+function renderCategoryPicker() {
+  const selected = costForm.elements.category?.value || '';
+  costCategoryPicker.innerHTML = CATEGORIES.map((c, i) => `
+    <label class="cat-opt" data-cat="${c.value}" style="--cat:${c.color}">
+      <input type="radio" name="category" value="${c.value}"${c.value === selected ? ' checked' : ''}${i === 0 ? ' required' : ''}>
+      <span class="cat-opt-body">${catIcon(c.value)}<span>${t('cat.' + c.value)}</span></span>
+    </label>`).join('');
+}
+renderCategoryPicker();
+costCategoryPicker.addEventListener('change', () => { costCard.dataset.cat = costForm.elements.category.value; });
+
+// Show/hide toggle on every password field.
+function enhancePasswordFields() {
+  document.querySelectorAll('input[type="password"]').forEach((input) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'pw-field';
+    input.replaceWith(wrap);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pw-toggle';
+    btn.setAttribute('aria-pressed', 'false');
+    wrap.append(input, btn);
+    const paint = () => {
+      const shown = input.type === 'text';
+      btn.innerHTML = uiIcon(shown ? 'eyeOff' : 'eye');
+      btn.setAttribute('aria-label', t(shown ? 'pw.hide' : 'pw.show'));
+      btn.setAttribute('aria-pressed', String(shown));
+    };
+    btn.addEventListener('click', () => {
+      input.type = input.type === 'password' ? 'text' : 'password';
+      paint();
+    });
+    btn.paint = paint;
+    paint();
+  });
+}
+enhancePasswordFields();
 
 // Auth DOM Elements
 const authTitle = document.getElementById('auth-title');
@@ -443,7 +500,7 @@ costForm.addEventListener('submit', async (e) => {
   if (!currentUser) return;
 
   const amount = parseFloat(costAmountInput.value);
-  const category = costCategoryInput.value;
+  const category = costForm.elements.category.value;
   const date = costDateInput.value;
   const notes = costNotesInput.value.trim();
 
@@ -463,7 +520,8 @@ costForm.addEventListener('submit', async (e) => {
     showCostMessage(t('form.added'), 'success');
     costForm.reset();
     delete costCard.dataset.cat;
-    costDateInput.valueAsDate = new Date();
+    setCostDate(0);
+    costAmountInput.focus(); // ready for the next expense
     fetchCosts();
     setTimeout(() => costMessage.classList.add('hidden'), 3000);
   }
@@ -474,17 +532,52 @@ function showCostMessage(text, type) {
   costMessage.className = `message ${type}`;
 }
 
-// Delete Cost
-window.deleteCost = async function(id) {
-  if (!confirm(t('history.confirmDelete'))) return;
+// Toast: one message at a time, auto-hides.
+const toast = document.getElementById('toast');
+const toastText = document.getElementById('toast-text');
+const toastUndo = document.getElementById('toast-undo');
+let toastTimer = null;
+let undoRow = null;
 
+function showToast(text, { undo = null, ms = 7000 } = {}) {
+  clearTimeout(toastTimer);
+  toastText.textContent = text;
+  undoRow = undo;
+  toastUndo.classList.toggle('hidden', !undo);
+  toast.classList.remove('hidden');
+  toastTimer = setTimeout(hideToast, ms);
+}
+
+function hideToast() {
+  clearTimeout(toastTimer);
+  toast.classList.add('hidden');
+  undoRow = null;
+}
+
+// Delete Cost: removed right away; "Undo" re-inserts the same row (same id), so nothing is lost if the tab closes.
+window.deleteCost = async function(id) {
+  const row = costsCache.find(c => c.id === id);
   const { error } = await supabase.from('costs').delete().eq('id', id);
   if (error) {
     alert(t('history.deleteFailed', { msg: error.message }));
-  } else {
-    fetchCosts();
+    return;
   }
+  await fetchCosts();
+  if (row) showToast(t('toast.deleted'), { undo: row });
 };
+
+toastUndo.addEventListener('click', async () => {
+  const row = undoRow;
+  if (!row) return;
+  hideToast();
+  const { error } = await supabase.from('costs').insert([row]);
+  if (error) {
+    showToast(t('toast.undoFailed', { msg: error.message }), { ms: 8000 });
+  } else {
+    await fetchCosts();
+    showToast(t('toast.restored'), { ms: 3000 });
+  }
+});
 
 // Render & Filter Costs
 function renderCosts() {
@@ -518,40 +611,62 @@ function renderCosts() {
 
   renderChart();
 
+  // Summary of what the current search/filter shows
+  if (filtered.length === 0) {
+    historySummary.classList.add('hidden');
+  } else {
+    const shown = filtered.reduce((sum, i) => sum + Number(i.amount), 0);
+    historySummary.textContent = t(filtered.length === 1 ? 'history.summaryOne' : 'history.summaryMany',
+      { n: filtered.length, total: `$${shown.toFixed(2)}` });
+    historySummary.classList.remove('hidden');
+  }
+
   // Render list
   if (filtered.length === 0) {
     costList.innerHTML = `<li class="empty-state">${t('history.none')}</li>`;
     return;
   }
 
-  costList.innerHTML = filtered.map(item => `
+  // Group by day (the query is already newest-first) with a subtotal per day.
+  const days = new Map();
+  filtered.forEach(item => {
+    if (!days.has(item.date)) days.set(item.date, []);
+    days.get(item.date).push(item);
+  });
+
+  costList.innerHTML = [...days].map(([date, items]) => {
+    const subtotal = items.reduce((sum, i) => sum + Number(i.amount), 0);
+    return `
+    <li class="day-head"><span>${dayLabel(date)}</span><span>$${subtotal.toFixed(2)}</span></li>
+    ${items.map(item => `
     <li class="cost-item" data-cat="${escapeHtml(item.category)}">
       <div class="cost-details">
         <div class="cost-cat">${catIcon(item.category)}${escapeHtml(t('cat.' + item.category))}</div>
-        <div class="cost-date">${item.date}</div>
         ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
       </div>
       <div class="cost-right">
         <span class="cost-amount">$${Number(item.amount).toFixed(2)}</span>
         <button class="btn btn-danger" onclick="deleteCost('${item.id}')">${t('history.delete')}</button>
       </div>
-    </li>
-  `).join('');
+    </li>`).join('')}`;
+  }).join('');
+}
+
+// "Today", "Yesterday", otherwise a short local date such as "Sat, 7 Nov" (year added when not this year).
+function dayLabel(iso) {
+  if (iso === localISO(0)) return t('day.today');
+  if (iso === localISO(1)) return t('day.yesterday');
+  const [y, m, d] = iso.split('-').map(Number);
+  const opts = { weekday: 'short', day: 'numeric', month: 'short' };
+  if (y !== new Date().getFullYear()) opts.year = 'numeric';
+  return new Intl.DateTimeFormat(getLang(), opts).format(new Date(y, m - 1, d));
 }
 
 // Donut chart: all-time spend per category (same scope as the "Total" figure).
-const CHART_CATS = [
-  { value: 'Meat', color: 'var(--cat-meat)' },
-  { value: 'Food & Dining', color: 'var(--cat-food)' },
-  { value: 'Transport', color: 'var(--cat-transport)' },
-  { value: 'Utilities', color: 'var(--cat-utilities)' },
-  { value: 'Entertainment', color: 'var(--cat-fun)' },
-  { value: 'Other', color: 'var(--cat-other)' }
-];
 
 function renderChart() {
   const body = document.getElementById('chart-body');
-  const sums = new Map(CHART_CATS.map(c => [c.value, 0]));
+  const sums = new Map(CATEGORIES.map(c => [c.value, 0]));
   let total = 0;
   costsCache.forEach(item => {
     const amt = Number(item.amount);
@@ -567,7 +682,7 @@ function renderChart() {
 
   const R = 15.9155; // circumference = 100, so dash lengths are percentages
   let offset = 25;   // start at 12 o'clock
-  const rows = CHART_CATS.filter(c => sums.get(c.value) > 0);
+  const rows = CATEGORIES.filter(c => sums.get(c.value) > 0);
   const arcs = rows.map(c => {
     const pct = (sums.get(c.value) / total) * 100;
     const arc = `<circle cx="21" cy="21" r="${R}" fill="none" stroke="${c.color}" stroke-width="6" stroke-dasharray="${pct} ${100 - pct}" stroke-dashoffset="${offset}"/>`;
@@ -603,6 +718,8 @@ function escapeHtml(str) {
 
 // Re-render JS-built content when the language changes
 onLangChange(() => {
+  document.querySelectorAll('.pw-toggle').forEach((b) => b.paint());
+  renderCategoryPicker();
   if (currentUser) {
     renderCosts();
     if (!accountView.classList.contains('hidden')) showAccount();

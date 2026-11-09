@@ -7,6 +7,8 @@
 export const DICT = {
   en: {
     'lang.label': 'Language',
+    'pw.show': 'Show password',
+    'pw.hide': 'Hide password',
 
     'auth.welcome': 'Welcome Back',
     'auth.welcomeDesc': 'Log in securely to manage your daily expenses',
@@ -49,9 +51,10 @@ export const DICT = {
 
     'form.title': 'Add Expense',
     'form.date': 'Date',
+    'form.today': 'Today',
+    'form.yesterday': 'Yesterday',
     'form.amount': 'Amount ($)',
     'form.category': 'Category',
-    'form.selectCategory': 'Select category',
     'form.notes': 'Notes (Optional)',
     'form.notesPlaceholder': 'e.g. 2kg of fresh beef',
     'form.submit': 'Add Expense',
@@ -78,7 +81,14 @@ export const DICT = {
     'history.none': 'No expenses found.',
     'history.failed': 'Failed to load expenses.',
     'history.delete': 'Delete',
-    'history.confirmDelete': 'Are you sure you want to delete this expense?',
+    'history.summaryOne': '1 expense · {total}',
+    'history.summaryMany': '{n} expenses · {total}',
+    'day.today': 'Today',
+    'day.yesterday': 'Yesterday',
+    'toast.deleted': 'Expense deleted.',
+    'toast.undo': 'Undo',
+    'toast.restored': 'Expense restored.',
+    'toast.undoFailed': 'Could not restore the expense: {msg}',
     'history.deleteFailed': 'Failed to delete expense: {msg}',
 
     'account.title': 'Account',
@@ -105,6 +115,8 @@ export const DICT = {
 
   es: {
     'lang.label': 'Idioma',
+    'pw.show': 'Mostrar contraseña',
+    'pw.hide': 'Ocultar contraseña',
 
     'auth.welcome': 'Bienvenido de nuevo',
     'auth.welcomeDesc': 'Inicia sesión de forma segura para gestionar tus gastos diarios',
@@ -147,9 +159,10 @@ export const DICT = {
 
     'form.title': 'Agregar gasto',
     'form.date': 'Fecha',
+    'form.today': 'Hoy',
+    'form.yesterday': 'Ayer',
     'form.amount': 'Monto ($)',
     'form.category': 'Categoría',
-    'form.selectCategory': 'Selecciona una categoría',
     'form.notes': 'Notas (opcional)',
     'form.notesPlaceholder': 'p. ej. 2 kg de carne fresca',
     'form.submit': 'Agregar gasto',
@@ -176,7 +189,14 @@ export const DICT = {
     'history.none': 'No se encontraron gastos.',
     'history.failed': 'No se pudieron cargar los gastos.',
     'history.delete': 'Eliminar',
-    'history.confirmDelete': '¿Seguro que quieres eliminar este gasto?',
+    'history.summaryOne': '1 gasto · {total}',
+    'history.summaryMany': '{n} gastos · {total}',
+    'day.today': 'Hoy',
+    'day.yesterday': 'Ayer',
+    'toast.deleted': 'Gasto eliminado.',
+    'toast.undo': 'Deshacer',
+    'toast.restored': 'Gasto restaurado.',
+    'toast.undoFailed': 'No se pudo restaurar el gasto: {msg}',
     'history.deleteFailed': 'No se pudo eliminar el gasto: {msg}',
 
     'account.title': 'Cuenta',
