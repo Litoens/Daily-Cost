@@ -57,3 +57,16 @@ export function categoryBreakdown(items, categoryValues) {
     .map((value) => ({ value, cents: sums.get(value), pct: (sums.get(value) / totalCents) * 100 }));
   return { totalCents, rows };
 }
+
+// Supabase returns at most 1000 rows per request: walk the ranges until a short page.
+// getPage(from, to) resolves to { data, error }. Any error discards partial data.
+export async function fetchAllPages(getPage, pageSize = 1000) {
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await getPage(from, from + pageSize - 1);
+    if (error) return { data: null, error };
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < pageSize) return { data: rows, error: null };
+  }
+}

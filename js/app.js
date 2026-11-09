@@ -3,7 +3,7 @@ import { catIcon, uiIcon, CATEGORIES } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 import { localISO } from './dates.js';
 import { formatMoney, toCents } from './money.js';
-import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown } from './expenses.js';
+import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, fetchAllPages } from './expenses.js';
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -32,6 +32,7 @@ const categoryFilter = document.getElementById('category-filter');
 
 let isSignUpMode = false;
 let currentUser = null;
+let fetchSeq = 0;
 let costsCache = [];
 // Set before anything else so the recovery session is never mistaken for a login.
 let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
@@ -288,6 +289,7 @@ function handleSession(session) {
   // The recovery link creates a real session; don't treat it as a login until the password is reset.
   if (recoveryMode) return;
 
+  const previousUserId = currentUser?.id;
   currentUser = session?.user || null;
   if (currentUser) {
     authView.classList.add('hidden');
@@ -295,8 +297,9 @@ function handleSession(session) {
     userEmailDisplay.textContent = currentUser.email;
     userEmailDisplay.title = currentUser.email;
     document.getElementById('profile-initial').textContent = currentUser.email[0].toUpperCase();
-    fetchCosts();
+    if (currentUser.id !== previousUserId) fetchCosts();
   } else {
+    fetchSeq++; // discard any in-flight fetch
     showExpenses();
     dashboardView.classList.add('hidden');
     authView.classList.remove('hidden');
@@ -473,19 +476,27 @@ document.getElementById('send-reset-link').addEventListener('click', async () =>
 // Fetch Costs
 async function fetchCosts() {
   if (!currentUser) return;
+  const seq = ++fetchSeq;
+  const userId = currentUser.id;
 
-  const { data, error } = await supabase
+  const { data, error } = await fetchAllPages((from, to) => supabase
     .from('costs')
     .select('*')
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .order('id')
+    .range(from, to));
+
+  // Ignore a response that was superseded or belongs to a previous sign-in.
+  if (seq !== fetchSeq || currentUser?.id !== userId) return;
 
   if (error) {
     console.error('Error fetching costs:', error);
-    costList.innerHTML = `<li class="empty-state">${t('history.failed')}</li>`;
+    costList.innerHTML = `<li class="empty-state">${t('history.failed')} <button type="button" class="text-link link-btn" data-action="retry">${t('history.retry')}</button></li>`;
     return;
   }
 
-  costsCache = data || [];
+  costsCache = data;
   renderCosts();
 }
 
@@ -568,6 +579,7 @@ costList.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
   if (!btn || !costList.contains(btn)) return;
   if (btn.dataset.action === 'delete') deleteCost(btn.dataset.id, btn);
+  if (btn.dataset.action === 'retry') fetchCosts();
 });
 
 toastUndo.addEventListener('click', async () => {
