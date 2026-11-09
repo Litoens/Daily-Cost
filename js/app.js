@@ -530,17 +530,52 @@ function showCostMessage(text, type) {
   costMessage.className = `message ${type}`;
 }
 
-// Delete Cost
-window.deleteCost = async function(id) {
-  if (!confirm(t('history.confirmDelete'))) return;
+// Toast: one message at a time, auto-hides.
+const toast = document.getElementById('toast');
+const toastText = document.getElementById('toast-text');
+const toastUndo = document.getElementById('toast-undo');
+let toastTimer = null;
+let undoRow = null;
 
+function showToast(text, { undo = null, ms = 7000 } = {}) {
+  clearTimeout(toastTimer);
+  toastText.textContent = text;
+  undoRow = undo;
+  toastUndo.classList.toggle('hidden', !undo);
+  toast.classList.remove('hidden');
+  toastTimer = setTimeout(hideToast, ms);
+}
+
+function hideToast() {
+  clearTimeout(toastTimer);
+  toast.classList.add('hidden');
+  undoRow = null;
+}
+
+// Delete Cost: removed right away; "Undo" re-inserts the same row (same id), so nothing is lost if the tab closes.
+window.deleteCost = async function(id) {
+  const row = costsCache.find(c => c.id === id);
   const { error } = await supabase.from('costs').delete().eq('id', id);
   if (error) {
     alert(t('history.deleteFailed', { msg: error.message }));
-  } else {
-    fetchCosts();
+    return;
   }
+  await fetchCosts();
+  if (row) showToast(t('toast.deleted'), { undo: row });
 };
+
+toastUndo.addEventListener('click', async () => {
+  const row = undoRow;
+  if (!row) return;
+  hideToast();
+  const { error } = await supabase.from('costs').insert([row]);
+  if (error) {
+    showToast(t('toast.undoFailed', { msg: error.message }), { ms: 8000 });
+  } else {
+    await fetchCosts();
+    showToast(t('toast.restored'), { ms: 3000 });
+  }
+});
 
 // Render & Filter Costs
 function renderCosts() {

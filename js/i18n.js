@@ -81,7 +81,10 @@ export const DICT = {
     'history.none': 'No expenses found.',
     'history.failed': 'Failed to load expenses.',
     'history.delete': 'Delete',
-    'history.confirmDelete': 'Are you sure you want to delete this expense?',
+    'toast.deleted': 'Expense deleted.',
+    'toast.undo': 'Undo',
+    'toast.restored': 'Expense restored.',
+    'toast.undoFailed': 'Could not restore the expense: {msg}',
     'history.deleteFailed': 'Failed to delete expense: {msg}',
 
     'account.title': 'Account',
@@ -182,7 +185,10 @@ export const DICT = {
     'history.none': 'No se encontraron gastos.',
     'history.failed': 'No se pudieron cargar los gastos.',
     'history.delete': 'Eliminar',
-    'history.confirmDelete': '¿Seguro que quieres eliminar este gasto?',
+    'toast.deleted': 'Gasto eliminado.',
+    'toast.undo': 'Deshacer',
+    'toast.restored': 'Gasto restaurado.',
+    'toast.undoFailed': 'No se pudo restaurar el gasto: {msg}',
     'history.deleteFailed': 'No se pudo eliminar el gasto: {msg}',
 
     'account.title': 'Cuenta',

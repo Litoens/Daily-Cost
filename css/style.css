@@ -595,3 +595,26 @@ footer {
 .pw-toggle:hover { color: var(--ink); }
 .pw-toggle[aria-pressed="true"] { color: var(--ink); }
 .pw-toggle:focus-visible { outline-offset: -3px; }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed; left: 0; right: 0; bottom: 1.25rem; z-index: 20;
+  margin-inline: auto; width: max-content;
+  display: flex; align-items: center; gap: 1rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.7rem 0.8rem 0.7rem 1rem;
+  background: var(--ink); color: var(--on-ink);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 30px -12px rgba(18, 38, 31, 0.6);
+  font-size: 0.9375rem;
+  animation: rise 0.25s var(--ease) both;
+}
+.toast-undo {
+  padding: 0.35rem 0.8rem;
+  background: var(--accent); color: var(--ink);
+  border: 1px solid var(--ink); border-radius: var(--radius);
+  font: inherit; font-weight: 700; cursor: pointer;
+}
+.toast-undo:hover { background: var(--accent-hover); }
+.toast-undo:focus-visible { outline-color: var(--accent); }
+@media (pointer: coarse) { .toast-undo { min-height: 44px; } }
