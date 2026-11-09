@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient.js';
-import { catIcon } from './icons.js';
+import { catIcon, CATEGORIES } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 
 // DOM Elements
@@ -16,7 +16,7 @@ const userEmailDisplay = document.getElementById('user-email-display');
 const costForm = document.getElementById('cost-form');
 const costDateInput = document.getElementById('cost-date');
 const costAmountInput = document.getElementById('cost-amount');
-const costCategoryInput = document.getElementById('cost-category');
+const costCategoryPicker = document.getElementById('cost-category');
 const costNotesInput = document.getElementById('cost-notes');
 const costMessage = document.getElementById('cost-message');
 
@@ -37,7 +37,18 @@ costDateInput.valueAsDate = new Date();
 
 // Tint the add-expense card with the chosen category's colour.
 const costCard = costForm.closest('.card');
-costCategoryInput.addEventListener('change', () => { costCard.dataset.cat = costCategoryInput.value; });
+
+// Category picker: one radio chip per category (native radios give keyboard and `required` for free).
+function renderCategoryPicker() {
+  const selected = costForm.elements.category?.value || '';
+  costCategoryPicker.innerHTML = CATEGORIES.map((c, i) => `
+    <label class="cat-opt" data-cat="${c.value}" style="--cat:${c.color}">
+      <input type="radio" name="category" value="${c.value}"${c.value === selected ? ' checked' : ''}${i === 0 ? ' required' : ''}>
+      <span class="cat-opt-body">${catIcon(c.value)}<span>${t('cat.' + c.value)}</span></span>
+    </label>`).join('');
+}
+renderCategoryPicker();
+costCategoryPicker.addEventListener('change', () => { costCard.dataset.cat = costForm.elements.category.value; });
 
 // Auth DOM Elements
 const authTitle = document.getElementById('auth-title');
@@ -443,7 +454,7 @@ costForm.addEventListener('submit', async (e) => {
   if (!currentUser) return;
 
   const amount = parseFloat(costAmountInput.value);
-  const category = costCategoryInput.value;
+  const category = costForm.elements.category.value;
   const date = costDateInput.value;
   const notes = costNotesInput.value.trim();
 
@@ -540,18 +551,10 @@ function renderCosts() {
 }
 
 // Donut chart: all-time spend per category (same scope as the "Total" figure).
-const CHART_CATS = [
-  { value: 'Meat', color: 'var(--cat-meat)' },
-  { value: 'Food & Dining', color: 'var(--cat-food)' },
-  { value: 'Transport', color: 'var(--cat-transport)' },
-  { value: 'Utilities', color: 'var(--cat-utilities)' },
-  { value: 'Entertainment', color: 'var(--cat-fun)' },
-  { value: 'Other', color: 'var(--cat-other)' }
-];
 
 function renderChart() {
   const body = document.getElementById('chart-body');
-  const sums = new Map(CHART_CATS.map(c => [c.value, 0]));
+  const sums = new Map(CATEGORIES.map(c => [c.value, 0]));
   let total = 0;
   costsCache.forEach(item => {
     const amt = Number(item.amount);
@@ -567,7 +570,7 @@ function renderChart() {
 
   const R = 15.9155; // circumference = 100, so dash lengths are percentages
   let offset = 25;   // start at 12 o'clock
-  const rows = CHART_CATS.filter(c => sums.get(c.value) > 0);
+  const rows = CATEGORIES.filter(c => sums.get(c.value) > 0);
   const arcs = rows.map(c => {
     const pct = (sums.get(c.value) / total) * 100;
     const arc = `<circle cx="21" cy="21" r="${R}" fill="none" stroke="${c.color}" stroke-width="6" stroke-dasharray="${pct} ${100 - pct}" stroke-dashoffset="${offset}"/>`;
@@ -603,6 +606,7 @@ function escapeHtml(str) {
 
 // Re-render JS-built content when the language changes
 onLangChange(() => {
+  renderCategoryPicker();
   if (currentUser) {
     renderCosts();
     if (!accountView.classList.contains('hidden')) showAccount();

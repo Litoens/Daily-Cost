@@ -8,6 +8,16 @@ const PATHS = {
   Other: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>'
 };
 
+// The six fixed categories (stored values never change) and their colour tokens.
+export const CATEGORIES = [
+  { value: 'Meat', color: 'var(--cat-meat)' },
+  { value: 'Food & Dining', color: 'var(--cat-food)' },
+  { value: 'Transport', color: 'var(--cat-transport)' },
+  { value: 'Utilities', color: 'var(--cat-utilities)' },
+  { value: 'Entertainment', color: 'var(--cat-fun)' },
+  { value: 'Other', color: 'var(--cat-other)' }
+];
+
 // Decorative: the category name always sits next to it, so it is hidden from screen readers.
 export function catIcon(category) {
   const d = PATHS[category] || PATHS.Other;

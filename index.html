@@ -148,16 +148,8 @@
           </div>
 
           <div class="form-group">
-            <label for="cost-category" data-i18n="form.category">Category</label>
-            <select id="cost-category" required>
-              <option value="" data-i18n="form.selectCategory">Select category</option>
-              <option value="Meat" data-i18n="cat.Meat">Meat &amp; Groceries</option>
-              <option value="Food & Dining" data-i18n="cat.Food & Dining">Food &amp; Dining</option>
-              <option value="Transport" data-i18n="cat.Transport">Transport</option>
-              <option value="Utilities" data-i18n="cat.Utilities">Utilities &amp; Bills</option>
-              <option value="Entertainment" data-i18n="cat.Entertainment">Entertainment</option>
-              <option value="Other" data-i18n="cat.Other">Other</option>
-            </select>
+            <span id="cost-category-label" class="field-label" data-i18n="form.category">Category</span>
+            <div id="cost-category" class="cat-picker" role="radiogroup" aria-labelledby="cost-category-label"></div>
           </div>
 
           <div class="form-group">

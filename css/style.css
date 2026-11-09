@@ -60,14 +60,14 @@ a { text-underline-offset: 0.2em; }
 /* ---------- Shared controls ---------- */
 .form-group { margin-bottom: 1.1rem; }
 
-label {
+.field-label, label {
   display: block;
   font-size: 0.8125rem;
   font-weight: 600;
   margin-bottom: 0.35rem;
 }
 
-input, select, textarea {
+input:not([type="radio"]), select, textarea {
   width: 100%;
   padding: 0.65rem 0.8rem;
   border: 1px solid #8fa196;
@@ -547,3 +547,23 @@ footer {
 .band .lang-switch button:hover { background: var(--ink-2); color: var(--on-ink); }
 .band .lang-switch button[aria-pressed="true"] { background: var(--accent); color: var(--ink); }
 .band .lang-switch button:focus-visible { outline-color: var(--accent); }
+
+/* ---------- Category picker ---------- */
+.cat-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.cat-opt { position: relative; margin: 0; cursor: pointer; }
+.cat-opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.cat-opt-body {
+  display: flex; align-items: center; gap: 0.55rem;
+  min-height: 2.75rem; padding: 0.4rem 0.6rem;
+  border: 1px solid #8fa196; border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.8125rem; font-weight: 600; line-height: 1.2;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.cat-opt:hover .cat-opt-body { border-color: var(--ink); }
+.cat-opt input:checked + .cat-opt-body {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--cat) 14%, var(--surface));
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.cat-opt input:focus-visible + .cat-opt-body { outline: 3px solid var(--focus); outline-offset: 2px; }
