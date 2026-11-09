@@ -81,6 +81,10 @@ export const DICT = {
     'chart.empty': 'Add an expense to see the breakdown.',
     'chart.total': 'Total',
     'chart.aria': 'Spending by category',
+    'chart.month': 'This month',
+    'chart.all': 'All time',
+    'chart.periodAria': 'Chart period',
+    'chart.emptyMonth': 'Nothing spent this month yet.',
 
     'history.title': 'Expense History',
     'history.search': 'Search category or notes...',
@@ -200,6 +204,10 @@ export const DICT = {
     'chart.empty': 'Agrega un gasto para ver el desglose.',
     'chart.total': 'Total',
     'chart.aria': 'Gastos por categoría',
+    'chart.month': 'Este mes',
+    'chart.all': 'Histórico',
+    'chart.periodAria': 'Periodo del gráfico',
+    'chart.emptyMonth': 'Aún no hay gastos este mes.',
 
     'history.title': 'Historial de gastos',
     'history.search': 'Buscar por categoría o notas...',

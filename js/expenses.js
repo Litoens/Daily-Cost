@@ -43,6 +43,13 @@ export function computeStats(items, todayISO) {
   return { todayCents, monthCents, allCents };
 }
 
+// 'month' keeps rows in the same calendar month as todayISO; 'all' keeps everything.
+export function periodItems(items, period, todayISO) {
+  if (period !== 'month') return items;
+  const month = monthKey(todayISO);
+  return items.filter((item) => item.date && monthKey(item.date) === month);
+}
+
 export function categoryBreakdown(items, categoryValues) {
   const sums = new Map(categoryValues.map((v) => [v, 0]));
   let totalCents = 0;

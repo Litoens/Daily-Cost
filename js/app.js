@@ -4,7 +4,7 @@ import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 import { localISO } from './dates.js';
 import { formatMoney, toCents } from './money.js';
 import { isValidEmail, isValidPassword, authErrorKey } from './validate.js';
-import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, fetchAllPages } from './expenses.js';
+import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, periodItems, fetchAllPages } from './expenses.js';
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -36,6 +36,7 @@ let isSignUpMode = false;
 let currentUser = null;
 let fetchSeq = 0;
 let costsCache = [];
+let chartPeriod = 'month'; // 'month' | 'all'
 let editingId = null; // id of the expense loaded into the add form, or null when adding
 // Set before anything else so the recovery session is never mistaken for a login.
 let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
@@ -769,14 +770,24 @@ function dayLabel(iso) {
   return new Intl.DateTimeFormat(getLang(), opts).format(new Date(y, m - 1, d));
 }
 
-// Donut chart: all-time spend per category (same scope as the "Total" figure).
+// Donut chart: spend per category for this month or all time (chartPeriod).
+document.getElementById('chart-period').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-period]');
+  if (!btn) return;
+  chartPeriod = btn.dataset.period;
+  document.querySelectorAll('#chart-period [data-period]').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b === btn));
+  });
+  renderChart();
+});
 
 function renderChart() {
   const body = document.getElementById('chart-body');
-  const { totalCents, rows } = categoryBreakdown(costsCache, CATEGORIES.map((c) => c.value));
+  const { totalCents, rows } = categoryBreakdown(periodItems(costsCache, chartPeriod, localISO(0)), CATEGORIES.map((c) => c.value));
 
   if (totalCents <= 0) {
-    body.innerHTML = `<p class="empty-state">${t('chart.empty')}</p>`;
+    const key = chartPeriod === 'month' && costsCache.length > 0 ? 'chart.emptyMonth' : 'chart.empty';
+    body.innerHTML = `<p class="empty-state">${t(key)}</p>`;
     return;
   }
 

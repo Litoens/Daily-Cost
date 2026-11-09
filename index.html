@@ -175,7 +175,13 @@
 
       <!-- Spending breakdown -->
       <div class="card card-chart">
-        <h2 data-i18n="chart.title">Where it goes</h2>
+        <div class="card-head">
+          <h2 data-i18n="chart.title">Where it goes</h2>
+          <div id="chart-period" class="date-shortcuts" role="group" data-i18n-aria="chart.periodAria">
+            <button type="button" class="chip-btn" data-period="month" aria-pressed="true" data-i18n="chart.month">This month</button>
+            <button type="button" class="chip-btn" data-period="all" aria-pressed="false" data-i18n="chart.all">All time</button>
+          </div>
+        </div>
         <div id="chart-body" class="chart-body">
           <p class="empty-state" data-i18n="chart.empty">Add an expense to see the breakdown.</p>
         </div>

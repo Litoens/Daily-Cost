@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown } from '../js/expenses.js';
+import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, periodItems } from '../js/expenses.js';
 
 const VALUES = ['Meat', 'Food & Dining', 'Transport', 'Utilities', 'Entertainment', 'Other'];
 const rows = [
@@ -41,4 +41,10 @@ test('categoryBreakdown', () => {
 });
 test('escapeHtml', () => {
   assert.equal(escapeHtml(`<img src=x onerror="a('b')">&`), '&lt;img src=x onerror=&quot;a(&#39;b&#39;)&quot;&gt;&amp;');
+});
+
+test('periodItems', () => {
+  assert.deepEqual(ids(periodItems(rows, 'month', '2026-11-09')), ['a', 'b', 'c']);
+  assert.deepEqual(ids(periodItems(rows, 'all', '2026-11-09')), ['a', 'b', 'c', 'd']);
+  assert.deepEqual(ids(periodItems(rows, 'month', '2026-12-01')), []);
 });

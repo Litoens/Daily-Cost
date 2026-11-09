@@ -338,6 +338,8 @@ header {
 .legend-amt { font-weight: 800; min-width: 5ch; text-align: right; }
 
 .card h2 { font-size: 1.0625rem; font-weight: 700; margin-bottom: 1rem; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.card-head h2 { margin-bottom: 0; }
 
 .filter-bar { display: flex; gap: 0.75rem; margin-bottom: 0.5rem; }
 .filter-bar input { flex: 2; min-width: 0; }
