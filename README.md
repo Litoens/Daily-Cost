@@ -19,6 +19,7 @@ A secure, modern daily cost tracking web application powered by **Supabase** (Po
 1. Create a free account at [Supabase](https://supabase.com).
 2. Create a new project.
 3. Go to the **SQL Editor** in your Supabase dashboard and run the SQL script found in `schema.sql` to create the `costs` table and set up RLS security policies.
+   - Existing projects: also run the files in `migrations/` in date order.
 4. Go to **Settings > API** in your Supabase dashboard and copy:
    - **Project URL**
    - **anon / public key**
