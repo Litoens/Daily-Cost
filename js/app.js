@@ -512,6 +512,8 @@ function renderCosts() {
   statTotal.textContent = `$${totalAll.toFixed(2)}`;
   statMonth.textContent = `$${totalMonth.toFixed(2)}`;
 
+  renderChart();
+
   // Render list
   if (filtered.length === 0) {
     costList.innerHTML = `<li class="empty-state">No expenses found.</li>`;
@@ -531,6 +533,59 @@ function renderCosts() {
       </div>
     </li>
   `).join('');
+}
+
+// Donut chart: all-time spend per category (same scope as the "Total" figure).
+const CHART_CATS = [
+  { value: 'Meat', label: 'Meat & Groceries', color: 'var(--cat-meat)' },
+  { value: 'Food & Dining', label: 'Food & Dining', color: 'var(--cat-food)' },
+  { value: 'Transport', label: 'Transport', color: 'var(--cat-transport)' },
+  { value: 'Utilities', label: 'Utilities & Bills', color: 'var(--cat-utilities)' },
+  { value: 'Entertainment', label: 'Entertainment', color: 'var(--cat-fun)' },
+  { value: 'Other', label: 'Other', color: 'var(--cat-other)' }
+];
+
+function renderChart() {
+  const body = document.getElementById('chart-body');
+  const sums = new Map(CHART_CATS.map(c => [c.value, 0]));
+  let total = 0;
+  costsCache.forEach(item => {
+    const amt = Number(item.amount);
+    const key = sums.has(item.category) ? item.category : 'Other';
+    sums.set(key, sums.get(key) + amt);
+    total += amt;
+  });
+
+  if (total <= 0) {
+    body.innerHTML = '<p class="empty-state">Add an expense to see the breakdown.</p>';
+    return;
+  }
+
+  const R = 15.9155; // circumference = 100, so dash lengths are percentages
+  let offset = 25;   // start at 12 o'clock
+  const rows = CHART_CATS.filter(c => sums.get(c.value) > 0);
+  const arcs = rows.map(c => {
+    const pct = (sums.get(c.value) / total) * 100;
+    const arc = `<circle cx="21" cy="21" r="${R}" fill="none" stroke="${c.color}" stroke-width="6" stroke-dasharray="${pct} ${100 - pct}" stroke-dashoffset="${offset}"/>`;
+    offset -= pct;
+    return arc;
+  }).join('');
+
+  const legend = rows
+    .sort((a, b) => sums.get(b.value) - sums.get(a.value))
+    .map(c => {
+      const amt = sums.get(c.value);
+      return `<li style="--cat:${c.color}"><span class="legend-name">${c.label}</span>` +
+        `<span class="legend-pct">${Math.round((amt / total) * 100)}%</span>` +
+        `<span class="legend-amt">$${amt.toFixed(2)}</span></li>`;
+    }).join('');
+
+  body.innerHTML = `
+    <div class="donut">
+      <svg viewBox="0 0 42 42" role="img" aria-label="Spending by category">${arcs}</svg>
+      <div class="donut-center"><span>Total</span><strong>$${total.toFixed(2)}</strong></div>
+    </div>
+    <ul class="legend">${legend}</ul>`;
 }
 
 searchFilter.addEventListener('input', renderCosts);

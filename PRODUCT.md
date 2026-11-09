@@ -16,7 +16,7 @@ Existing: plain static HTML/CSS/JS (ES modules, no build step) on GitHub Pages, 
 Record a daily cost in a few seconds (date, amount, category, optional note), then see what has been spent in total and this month, with search and category filter to look back. Success: logging an expense is faster than forgetting it.
 
 ## Positioning
-Single-purpose and private: one list, two numbers, no budgets, no charts, no sharing. Each user's rows are protected by Row Level Security.
+Single-purpose and private: one list, two numbers, one donut chart of spend by category, no budgets, no sharing. Each user's rows are protected by Row Level Security.
 
 ## Operating Context
 Sign in or sign up with email and a 4-16 character letters-and-numbers password. Forgot-password flow sends an email link that opens a Set New Password form, then returns to sign in. Dashboard: add-expense form, two summary figures, filterable history with delete.
