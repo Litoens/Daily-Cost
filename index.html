@@ -23,8 +23,8 @@
       <p id="auth-desc" data-i18n="auth.welcomeDesc">Log in securely to manage your daily expenses</p>
 
       <div class="auth-tabs">
-        <button id="tab-login" class="tab-btn active" data-i18n="auth.signIn">Sign In</button>
-        <button id="tab-signup" class="tab-btn" data-i18n="auth.signUp">Sign Up</button>
+        <button id="tab-login" class="tab-btn" aria-pressed="true" data-i18n="auth.signIn">Sign In</button>
+        <button id="tab-signup" class="tab-btn" aria-pressed="false" data-i18n="auth.signUp">Sign Up</button>
       </div>
 
       <form id="auth-form">
@@ -35,7 +35,7 @@
 
         <div class="form-group">
           <label for="password" data-i18n="auth.password">Password</label>
-          <input type="password" id="password" required placeholder="••••••••">
+          <input type="password" id="password" autocomplete="current-password" required placeholder="••••••••">
         </div>
 
         <div id="forgot-link-container" class="auth-aside">
@@ -45,7 +45,7 @@
         <button type="submit" id="auth-submit-btn" class="btn" data-i18n="auth.signIn">Sign In</button>
       </form>
 
-      <div id="auth-message" class="message hidden"></div>
+      <div id="auth-message" class="message hidden" role="status"></div>
     </div>
 
     <!-- Forgot Password Card -->
@@ -62,7 +62,7 @@
         <button type="submit" class="btn" data-i18n="forgot.send">Send Reset Link</button>
       </form>
 
-      <div id="forgot-message" class="message hidden"></div>
+      <div id="forgot-message" class="message hidden" role="status"></div>
 
       <div class="auth-back">
         <a href="#" id="back-to-login-link" class="text-link" data-i18n="auth.back">&larr; Back to Sign In</a>
@@ -88,7 +88,7 @@
         <button type="submit" class="btn" data-i18n="setpw.update">Update Password</button>
       </form>
 
-      <div id="reset-password-message" class="message hidden"></div>
+      <div id="reset-password-message" class="message hidden" role="status"></div>
     </div>
   </div>
 
@@ -164,7 +164,7 @@
           </div>
 
           <button type="submit" class="btn" data-i18n="form.submit">Add Expense</button>
-          <div id="cost-message" class="message hidden"></div>
+          <div id="cost-message" class="message hidden" role="status"></div>
         </form>
       </div>
 
@@ -233,7 +233,7 @@
           </div>
           <button type="submit" class="btn" data-i18n="pw.update">Update Password</button>
         </form>
-        <div id="change-password-message" class="message hidden"></div>
+        <div id="change-password-message" class="message hidden" role="status"></div>
         <p class="account-note"><span data-i18n="pw.forgotCurrent">Forgot your current password?</span> <button id="send-reset-link" class="text-link link-btn" data-i18n="pw.emailLink">Email me a reset link</button></p>
       </div>
     </main>

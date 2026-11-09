@@ -97,27 +97,24 @@ const authTitle = document.getElementById('auth-title');
 const authDesc = document.getElementById('auth-desc');
 
 // Auth Tab Switching
-tabLogin.addEventListener('click', () => {
-  isSignUpMode = false;
-  tabLogin.classList.add('active');
-  tabSignup.classList.remove('active');
-  authTitle.dataset.i18n = 'auth.welcome';
-  authDesc.dataset.i18n = 'auth.welcomeDesc';
-  authSubmitBtn.dataset.i18n = 'auth.signIn';
-  applyTranslations();
-  authMessage.classList.add('hidden');
-});
+const passwordInput = document.getElementById('password');
+const forgotLinkContainer = document.getElementById('forgot-link-container');
 
-tabSignup.addEventListener('click', () => {
-  isSignUpMode = true;
-  tabSignup.classList.add('active');
-  tabLogin.classList.remove('active');
-  authTitle.dataset.i18n = 'auth.create';
-  authDesc.dataset.i18n = 'auth.createDesc';
-  authSubmitBtn.dataset.i18n = 'auth.signUp';
+function setAuthMode(signUp) {
+  isSignUpMode = signUp;
+  tabLogin.setAttribute('aria-pressed', String(!signUp));
+  tabSignup.setAttribute('aria-pressed', String(signUp));
+  passwordInput.autocomplete = signUp ? 'new-password' : 'current-password';
+  forgotLinkContainer.classList.toggle('hidden', signUp);
+  authTitle.dataset.i18n = signUp ? 'auth.create' : 'auth.welcome';
+  authDesc.dataset.i18n = signUp ? 'auth.createDesc' : 'auth.welcomeDesc';
+  authSubmitBtn.dataset.i18n = signUp ? 'auth.signUp' : 'auth.signIn';
   applyTranslations();
   authMessage.classList.add('hidden');
-});
+}
+
+tabLogin.addEventListener('click', () => setAuthMode(false));
+tabSignup.addEventListener('click', () => setAuthMode(true));
 
 // Password Reset DOM Elements
 const authCardMain = document.getElementById('auth-card-main');
@@ -154,6 +151,12 @@ backToLoginLink.addEventListener('click', (e) => {
   authMessage.classList.add('hidden');
 });
 
+// Show a message in one of the role="status" message boxes.
+function showMessage(el, text, type) {
+  el.textContent = text;
+  el.className = 'message ' + type;
+}
+
 // Run a request with its button disabled so a double click cannot send it twice.
 // `el` is the button itself or a form containing a submit button.
 async function withBusy(el, fn) {
@@ -177,7 +180,7 @@ forgotForm.addEventListener('submit', async (e) => {
   forgotMessage.classList.add('hidden');
 
   if (!isValidEmail(email)) {
-    showForgotMessage(t('auth.invalidEmail'), 'error');
+    showMessage(forgotMessage, t('auth.invalidEmail'), 'error');
     return;
   }
 
@@ -187,17 +190,13 @@ forgotForm.addEventListener('submit', async (e) => {
     });
 
     if (error) {
-      showForgotMessage(error.message, 'error');
+      showMessage(forgotMessage, error.message, 'error');
     } else {
-      showForgotMessage(t('forgot.sent'), 'success');
+      showMessage(forgotMessage, t('forgot.sent'), 'success');
     }
   });
 });
 
-function showForgotMessage(text, type) {
-  forgotMessage.textContent = text;
-  forgotMessage.className = `message ${type}`;
-}
 
 // Reset Password Form Submit
 resetPasswordForm.addEventListener('submit', async (e) => {
@@ -209,12 +208,12 @@ resetPasswordForm.addEventListener('submit', async (e) => {
   resetPasswordMessage.classList.add('hidden');
 
   if (!isValidPassword(newPassword)) {
-    showResetPasswordMessage(t('auth.invalidPassword'), 'error');
+    showMessage(resetPasswordMessage, t('auth.invalidPassword'), 'error');
     return;
   }
 
   if (newPassword !== confirmPassword) {
-    showResetPasswordMessage(t('setpw.mismatch'), 'error');
+    showMessage(resetPasswordMessage, t('setpw.mismatch'), 'error');
     return;
   }
 
@@ -224,9 +223,9 @@ resetPasswordForm.addEventListener('submit', async (e) => {
     });
 
     if (error) {
-      showResetPasswordMessage(error.message, 'error');
+      showMessage(resetPasswordMessage, error.message, 'error');
     } else {
-      showResetPasswordMessage(t('setpw.done'), 'success');
+      showMessage(resetPasswordMessage, t('setpw.done'), 'success');
       recoveryMode = false;
       await supabase.auth.signOut(); // force a fresh sign-in with the new password
       setTimeout(() => {
@@ -234,16 +233,12 @@ resetPasswordForm.addEventListener('submit', async (e) => {
         resetPasswordCard.classList.add('hidden');
         authCardMain.classList.remove('hidden');
         authView.classList.remove('hidden');
-        showAuthMessage(t('auth.updatedSignIn'), 'success');
+        showMessage(authMessage, t('auth.updatedSignIn'), 'success');
       }, 1500);
     }
   });
 });
 
-function showResetPasswordMessage(text, type) {
-  resetPasswordMessage.textContent = text;
-  resetPasswordMessage.className = `message ${type}`;
-}
 
 // Check Initial Session
 async function initSession() {
@@ -257,7 +252,7 @@ async function initSession() {
     forgotCard.classList.add('hidden');
     resetPasswordCard.classList.add('hidden');
     const decodedDesc = errorDesc ? decodeURIComponent(errorDesc.replace(/\+/g, ' ')) : t('auth.linkExpired');
-    showAuthMessage(t('auth.linkError', { desc: decodedDesc }), 'error');
+    showMessage(authMessage, t('auth.linkError', { desc: decodedDesc }), 'error');
     window.history.replaceState({}, document.title, window.location.pathname);
     return;
   }
@@ -352,13 +347,13 @@ authForm.addEventListener('submit', async (e) => {
 
   // Validate Email
   if (!isValidEmail(email)) {
-    showAuthMessage(t('auth.invalidEmail'), 'error');
+    showMessage(authMessage, t('auth.invalidEmail'), 'error');
     return;
   }
 
   // Validate Password
   if (!isValidPassword(password)) {
-    showAuthMessage(t('auth.invalidPassword'), 'error');
+    showMessage(authMessage, t('auth.invalidPassword'), 'error');
     return;
   }
 
@@ -366,23 +361,19 @@ authForm.addEventListener('submit', async (e) => {
     if (isSignUpMode) {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
-        showAuthMessage(error.message, 'error');
+        showMessage(authMessage, error.message, 'error');
       } else {
-        showAuthMessage(t('auth.created'), 'success');
+        showMessage(authMessage, t('auth.created'), 'success');
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        showAuthMessage(error.message, 'error');
+        showMessage(authMessage, error.message, 'error');
       }
     }
   });
 });
 
-function showAuthMessage(text, type) {
-  authMessage.textContent = text;
-  authMessage.className = `message ${type}`;
-}
 
 // Logout
 logoutBtn.addEventListener('click', async () => {
@@ -398,9 +389,14 @@ const statsGrid = document.getElementById('stats-grid');
 const changePasswordForm = document.getElementById('change-password-form');
 const changePasswordMessage = document.getElementById('change-password-message');
 
+const menuItems = [...profileMenu.querySelectorAll('.menu-item')];
+const menuIsOpen = () => !profileMenu.classList.contains('hidden');
+
+// Focus moves into the menu only when it is opened, never when a click or page change closes it.
 function toggleMenu(open) {
   profileMenu.classList.toggle('hidden', !open);
   profileBtn.setAttribute('aria-expanded', String(open));
+  if (open) menuItems[0].focus();
 }
 
 profileBtn.addEventListener('click', (e) => {
@@ -409,7 +405,16 @@ profileBtn.addEventListener('click', (e) => {
 });
 document.addEventListener('click', () => toggleMenu(false));
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { toggleMenu(false); profileBtn.focus(); }
+  if (!menuIsOpen()) return;
+  if (e.key === 'Escape') { toggleMenu(false); profileBtn.focus(); return; }
+  if (e.key === 'Tab') { toggleMenu(false); return; }
+  const i = menuItems.indexOf(document.activeElement);
+  let next = -1;
+  if (e.key === 'ArrowDown') next = (i + 1) % menuItems.length;
+  else if (e.key === 'ArrowUp') next = (i - 1 + menuItems.length) % menuItems.length;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = menuItems.length - 1;
+  if (next >= 0) { e.preventDefault(); menuItems[next].focus(); }
 });
 
 const passwordView = document.getElementById('password-view');
@@ -445,10 +450,6 @@ document.getElementById('menu-reset').addEventListener('click', showPassword);
 document.getElementById('account-back').addEventListener('click', showExpenses);
 document.getElementById('password-back').addEventListener('click', showExpenses);
 
-function showChangePasswordMessage(text, type) {
-  changePasswordMessage.textContent = text;
-  changePasswordMessage.className = `message ${type}`;
-}
 
 // Change password: re-verify the current password, then update and sign out other devices.
 changePasswordForm.addEventListener('submit', async (e) => {
@@ -458,33 +459,33 @@ changePasswordForm.addEventListener('submit', async (e) => {
   const confirm = document.getElementById('account-confirm-password').value;
 
   if (!isValidPassword(next)) {
-    showChangePasswordMessage(t('pw.invalidNew'), 'error');
+    showMessage(changePasswordMessage, t('pw.invalidNew'), 'error');
     return;
   }
   if (next !== confirm) {
-    showChangePasswordMessage(t('pw.mismatch'), 'error');
+    showMessage(changePasswordMessage, t('pw.mismatch'), 'error');
     return;
   }
   if (next === current) {
-    showChangePasswordMessage(t('pw.same'), 'error');
+    showMessage(changePasswordMessage, t('pw.same'), 'error');
     return;
   }
 
   await withBusy(changePasswordForm, async () => {
     const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: current });
     if (verifyError) {
-      showChangePasswordMessage(t('pw.wrongCurrent'), 'error');
+      showMessage(changePasswordMessage, t('pw.wrongCurrent'), 'error');
       return;
     }
 
     const { error } = await supabase.auth.updateUser({ password: next });
     if (error) {
-      showChangePasswordMessage(error.message, 'error');
+      showMessage(changePasswordMessage, error.message, 'error');
       return;
     }
     await supabase.auth.signOut({ scope: 'others' });
     changePasswordForm.reset();
-    showChangePasswordMessage(t('pw.updated'), 'success');
+    showMessage(changePasswordMessage, t('pw.updated'), 'success');
   });
 });
 
@@ -494,7 +495,7 @@ sendResetLinkBtn.addEventListener('click', () => withBusy(sendResetLinkBtn, asyn
   const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
     redirectTo: window.location.origin + window.location.pathname
   });
-  showChangePasswordMessage(error ? error.message : t('pw.linkSent', { email: currentUser.email }), error ? 'error' : 'success');
+  showMessage(changePasswordMessage, error ? error.message : t('pw.linkSent', { email: currentUser.email }), error ? 'error' : 'success');
 }));
 
 // Fetch Costs
@@ -546,9 +547,9 @@ costForm.addEventListener('submit', async (e) => {
     ]);
 
     if (error) {
-      showCostMessage(error.message, 'error');
+      showMessage(costMessage, error.message, 'error');
     } else {
-      showCostMessage(t('form.added'), 'success');
+      showMessage(costMessage, t('form.added'), 'success');
       costForm.reset();
       delete costCard.dataset.cat;
       setCostDate(0);
@@ -559,10 +560,6 @@ costForm.addEventListener('submit', async (e) => {
   });
 });
 
-function showCostMessage(text, type) {
-  costMessage.textContent = text;
-  costMessage.className = `message ${type}`;
-}
 
 // Toast: one message at a time, auto-hides.
 const toast = document.getElementById('toast');
@@ -579,6 +576,17 @@ function showToast(text, { undo = null, ms = 7000 } = {}) {
   toast.classList.remove('hidden');
   toastTimer = setTimeout(hideToast, ms);
 }
+
+// Keep the toast while the pointer is over it or focus is inside it.
+toast.addEventListener('mouseenter', () => clearTimeout(toastTimer));
+toast.addEventListener('focusin', () => clearTimeout(toastTimer));
+const restartToastTimer = () => {
+  if (toast.classList.contains('hidden') || toast.matches(':hover') || toast.contains(document.activeElement)) return;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 4000);
+};
+toast.addEventListener('mouseleave', restartToastTimer);
+toast.addEventListener('focusout', () => setTimeout(restartToastTimer, 0));
 
 function hideToast() {
   clearTimeout(toastTimer);

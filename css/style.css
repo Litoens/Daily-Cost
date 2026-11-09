@@ -198,7 +198,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .tab-btn:hover { color: var(--ink); }
-.tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+.tab-btn[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--ink); }
 
 .text-link {
   font-size: 0.875rem;
@@ -437,6 +437,7 @@ footer {
 @media (max-width: 760px) {
   .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
   .stat-card + .stat-card { padding-left: 1rem; }
+  .cost-list { max-height: none; overflow: visible; }
 }
 
 @media (prefers-reduced-motion: reduce) {
