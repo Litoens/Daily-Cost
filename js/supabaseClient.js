@@ -1,6 +1,5 @@
-// Import Supabase CDN script in HTML before loading this file or use ES modules from CDN.
 // For browser ES modules:
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm'
 
 // Supabase configuration
 const SUPABASE_URL = 'https://pbivydommrnxxerkdjva.supabase.co';

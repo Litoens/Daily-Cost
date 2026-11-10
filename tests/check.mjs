@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync('index.html', 'utf8');
 const js = readFileSync('js/app.js', 'utf8');
+const validateJs = readFileSync('js/validate.js', 'utf8');
 
 const htmlIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
 const used = [...js.matchAll(/getElementById\('([^']+)'\)/g)].map((m) => m[1]);
@@ -21,6 +22,15 @@ if (dupes.length) {
 
 console.log(`OK: ${new Set(used).size} ids found, no duplicates`);
 
+const forbidden = [
+  [/onclick=/, 'inline onclick handler'],
+  [/window\.deleteCost/, 'global deleteCost'],
+  [/\balert\(/, 'alert()'],
+  [/style="/, 'inline style attribute']
+];
+const hits = forbidden.filter(([re]) => re.test(js) || re.test(html)).map(([, why]) => why);
+if (hits.length) { console.error('Forbidden patterns:', hits.join(', ')); process.exit(1); }
+
 // i18n: both dictionaries have the same keys, and every key used in index.html / app.js exists.
 const { DICT } = await import('../js/i18n.js');
 const enKeys = Object.keys(DICT.en);
@@ -33,7 +43,8 @@ if (diff.length) {
 const usedKeys = [
   ...[...html.matchAll(/data-i18n(?:-placeholder|-aria)?="([^"]+)"/g)].map((m) => m[1]),
   ...[...js.matchAll(/\bt\('([^']+)'[,)]/g)].map((m) => m[1]),
-  ...[...js.matchAll(/dataset\.i18n = '([^']+)'/g)].map((m) => m[1])
+  ...[...js.matchAll(/dataset\.i18n = '([^']+)'/g)].map((m) => m[1]),
+  ...[...validateJs.matchAll(/'((?:err|auth|pw)\.[A-Za-z]+)'/g)].map((m) => m[1])
 ];
 const unknown = [...new Set(usedKeys)].filter((k) => !enKeys.includes(k));
 if (unknown.length) {
@@ -41,3 +52,15 @@ if (unknown.length) {
   process.exit(1);
 }
 console.log(`OK: ${enKeys.length} i18n keys in en and es`);
+
+// Supply chain and CSP: the Supabase client is pinned to an exact version and the page carries a policy.
+const clientJs = readFileSync('js/supabaseClient.js', 'utf8');
+if (!/supabase-js@\d+\.\d+\.\d+\/\+esm/.test(clientJs)) {
+  console.error('js/supabaseClient.js must import a pinned supabase-js@X.Y.Z/+esm');
+  process.exit(1);
+}
+if (!html.includes('http-equiv="Content-Security-Policy"')) {
+  console.error('index.html is missing the Content-Security-Policy meta tag');
+  process.exit(1);
+}
+console.log('OK: Supabase client pinned, Content Security Policy present');

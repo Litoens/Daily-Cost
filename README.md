@@ -5,11 +5,27 @@ A secure, modern daily cost tracking web application powered by **Supabase** (Po
 ---
 
 ## Features
-- **Secure Authentication:** Sign up (with email validation and password requirements: 4–16 characters with letters & numbers), log in, and log out with secure session management and dynamic descriptive UI.
+- **Secure Authentication:** Sign up (with email validation and password requirements: 4–16 characters with at least one letter and one number; symbols allowed), log in, and log out with secure session management and dynamic descriptive UI.
 - **Private Data Storage:** PostgreSQL backend secured with Row Level Security (RLS) so users can only access their own expenses.
-- **Daily Expense Logging:** Record daily costs (e.g. November 30, $20 on Meat) with category selection, dates, and notes.
-- **Dashboard & Summary:** Real-time calculation of total spent and current month expenses, plus filtering and search capabilities.
+- **Daily Expense Logging:** Record daily costs (e.g. November 30, $20 on Meat) with category, date and notes. Edit an expense later with the pencil icon on its row (Save or Cancel in the same form), or delete it and undo the delete.
+- **Dashboard & Summary:** Three figures (Today, This Month, All time), a category chart you can switch between this month and all time, and a history grouped by day with a daily subtotal.
+- **Search, Filter & Export:** Search by category or notes, filter by category, and export the filtered list as a CSV file.
+- **English and Spanish:** Switch language (EN | ES) at any time; the choice is remembered in the browser.
 - **Free Hosting:** Ready to be hosted on GitHub Pages.
+
+---
+
+## Tests
+
+There is no build step and no `package.json`; the tests use only Node's built-in test runner (Node 22 or newer). Run these from the project root, the same commands CI runs:
+
+```bash
+for f in js/*.js tests/*.mjs; do node --check "$f"; done
+node tests/check.mjs
+node --test tests/*.test.mjs
+```
+
+The first checks JavaScript syntax, the second checks the HTML wiring and that both languages have the same texts, the third runs the unit tests.
 
 ---
 
@@ -19,6 +35,7 @@ A secure, modern daily cost tracking web application powered by **Supabase** (Po
 1. Create a free account at [Supabase](https://supabase.com).
 2. Create a new project.
 3. Go to the **SQL Editor** in your Supabase dashboard and run the SQL script found in `schema.sql` to create the `costs` table and set up RLS security policies.
+   - Existing projects: also run the files in `migrations/` in date order. Each migration file starts with a comment describing a check to run first.
 4. Go to **Settings > API** in your Supabase dashboard and copy:
    - **Project URL**
    - **anon / public key**

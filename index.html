@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://pbivydommrnxxerkdjva.supabase.co wss://pbivydommrnxxerkdjva.supabase.co; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Cost Tracker</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#12261f">
   <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +27,8 @@
       <p id="auth-desc" data-i18n="auth.welcomeDesc">Log in securely to manage your daily expenses</p>
 
       <div class="auth-tabs">
-        <button id="tab-login" class="tab-btn active" data-i18n="auth.signIn">Sign In</button>
-        <button id="tab-signup" class="tab-btn" data-i18n="auth.signUp">Sign Up</button>
+        <button id="tab-login" class="tab-btn" aria-pressed="true" data-i18n="auth.signIn">Sign In</button>
+        <button id="tab-signup" class="tab-btn" aria-pressed="false" data-i18n="auth.signUp">Sign Up</button>
       </div>
 
       <form id="auth-form">
@@ -35,7 +39,7 @@
 
         <div class="form-group">
           <label for="password" data-i18n="auth.password">Password</label>
-          <input type="password" id="password" required placeholder="••••••••">
+          <input type="password" id="password" autocomplete="current-password" required placeholder="••••••••">
         </div>
 
         <div id="forgot-link-container" class="auth-aside">
@@ -45,7 +49,7 @@
         <button type="submit" id="auth-submit-btn" class="btn" data-i18n="auth.signIn">Sign In</button>
       </form>
 
-      <div id="auth-message" class="message hidden"></div>
+      <div id="auth-message" class="message hidden" role="status"></div>
     </div>
 
     <!-- Forgot Password Card -->
@@ -62,7 +66,7 @@
         <button type="submit" class="btn" data-i18n="forgot.send">Send Reset Link</button>
       </form>
 
-      <div id="forgot-message" class="message hidden"></div>
+      <div id="forgot-message" class="message hidden" role="status"></div>
 
       <div class="auth-back">
         <a href="#" id="back-to-login-link" class="text-link" data-i18n="auth.back">&larr; Back to Sign In</a>
@@ -88,7 +92,7 @@
         <button type="submit" class="btn" data-i18n="setpw.update">Update Password</button>
       </form>
 
-      <div id="reset-password-message" class="message hidden"></div>
+      <div id="reset-password-message" class="message hidden" role="status"></div>
     </div>
   </div>
 
@@ -120,12 +124,16 @@
         <!-- Stats Summary -->
         <div id="stats-grid" class="stats-grid">
           <div class="stat-card">
-            <h2 data-i18n="stats.total">Total Spent (All Time)</h2>
-            <div id="stat-total" class="amount">$0.00</div>
+            <h2 data-i18n="stats.today">Today</h2>
+            <div id="stat-today" class="amount">$0.00</div>
           </div>
           <div class="stat-card">
             <h2 data-i18n="stats.month">This Month</h2>
             <div id="stat-month" class="amount">$0.00</div>
+          </div>
+          <div class="stat-card stat-all">
+            <h2 data-i18n="stats.total">All time</h2>
+            <div id="stat-total" class="amount">$0.00</div>
           </div>
         </div>
       </div>
@@ -135,7 +143,7 @@
     <main id="expenses-view" class="wrap dashboard-grid">
       <!-- Add Cost Form -->
       <div class="card card-entry">
-        <h2 data-i18n="form.title">Add Expense</h2>
+        <h2 id="cost-form-title" data-i18n="form.title">Add Expense</h2>
         <form id="cost-form">
           <div class="form-group">
             <div class="field-row">
@@ -150,7 +158,7 @@
 
           <div class="form-group">
             <label for="cost-amount" data-i18n="form.amount">Amount ($)</label>
-            <input type="number" id="cost-amount" step="0.01" min="0" required placeholder="20.00" inputmode="decimal">
+            <input type="number" id="cost-amount" step="0.01" min="0.01" max="99999999.99" required placeholder="20.00" inputmode="decimal">
           </div>
 
           <div class="form-group">
@@ -160,17 +168,24 @@
 
           <div class="form-group">
             <label for="cost-notes" data-i18n="form.notes">Notes (Optional)</label>
-            <textarea id="cost-notes" rows="2" placeholder="e.g. 2kg of fresh beef" data-i18n-placeholder="form.notesPlaceholder"></textarea>
+            <textarea id="cost-notes" rows="2" maxlength="500" placeholder="e.g. 2kg of fresh beef" data-i18n-placeholder="form.notesPlaceholder"></textarea>
           </div>
 
-          <button type="submit" class="btn" data-i18n="form.submit">Add Expense</button>
-          <div id="cost-message" class="message hidden"></div>
+          <button type="submit" id="cost-submit" class="btn" data-i18n="form.submit">Add Expense</button>
+          <button type="button" id="cost-cancel" class="btn btn-secondary hidden" data-i18n="form.cancel">Cancel</button>
+          <div id="cost-message" class="message hidden" role="status"></div>
         </form>
       </div>
 
       <!-- Spending breakdown -->
       <div class="card card-chart">
-        <h2 data-i18n="chart.title">Where it goes</h2>
+        <div class="card-head">
+          <h2 data-i18n="chart.title">Where it goes</h2>
+          <div id="chart-period" class="date-shortcuts" role="group" data-i18n-aria="chart.periodAria">
+            <button type="button" class="chip-btn" data-period="month" aria-pressed="true" data-i18n="chart.month">This month</button>
+            <button type="button" class="chip-btn" data-period="all" aria-pressed="false" data-i18n="chart.all">All time</button>
+          </div>
+        </div>
         <div id="chart-body" class="chart-body">
           <p class="empty-state" data-i18n="chart.empty">Add an expense to see the breakdown.</p>
         </div>
@@ -183,16 +198,13 @@
           <input type="text" id="search-filter" placeholder="Search category or notes..." data-i18n-placeholder="history.search" aria-label="Search expenses" data-i18n-aria="history.searchAria">
           <select id="category-filter" aria-label="Filter by category" data-i18n-aria="history.filterAria">
             <option value="" data-i18n="history.all">All Categories</option>
-            <option value="Meat" data-i18n="cat.Meat">Meat &amp; Groceries</option>
-            <option value="Food & Dining" data-i18n="cat.Food & Dining">Food &amp; Dining</option>
-            <option value="Transport" data-i18n="cat.Transport">Transport</option>
-            <option value="Utilities" data-i18n="cat.Utilities">Utilities &amp; Bills</option>
-            <option value="Entertainment" data-i18n="cat.Entertainment">Entertainment</option>
-            <option value="Other" data-i18n="cat.Other">Other</option>
           </select>
         </div>
 
-        <p id="history-summary" class="history-summary hidden"></p>
+        <div class="summary-row">
+          <p id="history-summary" class="history-summary hidden"></p>
+          <button type="button" id="export-csv" class="text-link link-btn hidden" data-i18n="history.export">Export CSV</button>
+        </div>
 
         <ul id="cost-list" class="cost-list">
           <li class="empty-state" data-i18n="history.loading">Loading expenses...</li>
@@ -239,7 +251,7 @@
           </div>
           <button type="submit" class="btn" data-i18n="pw.update">Update Password</button>
         </form>
-        <div id="change-password-message" class="message hidden"></div>
+        <div id="change-password-message" class="message hidden" role="status"></div>
         <p class="account-note"><span data-i18n="pw.forgotCurrent">Forgot your current password?</span> <button id="send-reset-link" class="text-link link-btn" data-i18n="pw.emailLink">Email me a reset link</button></p>
       </div>
     </main>

@@ -1,6 +1,10 @@
 import { supabase } from './supabaseClient.js';
 import { catIcon, uiIcon, CATEGORIES } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
+import { localISO } from './dates.js';
+import { formatMoney, toCents } from './money.js';
+import { isValidEmail, isValidPassword, authErrorKey } from './validate.js';
+import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, periodItems, fetchAllPages, toCsv } from './expenses.js';
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -22,6 +26,9 @@ const costMessage = document.getElementById('cost-message');
 
 const costList = document.getElementById('cost-list');
 const historySummary = document.getElementById('history-summary');
+const exportCsvBtn = document.getElementById('export-csv');
+let filteredCosts = [];
+const statToday = document.getElementById('stat-today');
 const statTotal = document.getElementById('stat-total');
 const statMonth = document.getElementById('stat-month');
 const searchFilter = document.getElementById('search-filter');
@@ -29,17 +36,12 @@ const categoryFilter = document.getElementById('category-filter');
 
 let isSignUpMode = false;
 let currentUser = null;
+let fetchSeq = 0;
 let costsCache = [];
+let chartPeriod = 'month'; // 'month' | 'all'
+let editingId = null; // id of the expense loaded into the add form, or null when adding
 // Set before anything else so the recovery session is never mistaken for a login.
 let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
-
-// Local calendar date as YYYY-MM-DD, `daysAgo` days back. (valueAsDate would use UTC and
-// flip to tomorrow in the evening for users west of Greenwich.)
-function localISO(daysAgo = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 // Date shortcuts: Today / Yesterday, highlighted while the date field matches.
 const dateToday = document.getElementById('date-today');
@@ -61,7 +63,7 @@ const costCard = costForm.closest('.card');
 function renderCategoryPicker() {
   const selected = costForm.elements.category?.value || '';
   costCategoryPicker.innerHTML = CATEGORIES.map((c, i) => `
-    <label class="cat-opt" data-cat="${c.value}" style="--cat:${c.color}">
+    <label class="cat-opt" data-cat="${c.value}">
       <input type="radio" name="category" value="${c.value}"${c.value === selected ? ' checked' : ''}${i === 0 ? ' required' : ''}>
       <span class="cat-opt-body">${catIcon(c.value)}<span>${t('cat.' + c.value)}</span></span>
     </label>`).join('');
@@ -101,27 +103,24 @@ const authTitle = document.getElementById('auth-title');
 const authDesc = document.getElementById('auth-desc');
 
 // Auth Tab Switching
-tabLogin.addEventListener('click', () => {
-  isSignUpMode = false;
-  tabLogin.classList.add('active');
-  tabSignup.classList.remove('active');
-  authTitle.dataset.i18n = 'auth.welcome';
-  authDesc.dataset.i18n = 'auth.welcomeDesc';
-  authSubmitBtn.dataset.i18n = 'auth.signIn';
-  applyTranslations();
-  authMessage.classList.add('hidden');
-});
+const passwordInput = document.getElementById('password');
+const forgotLinkContainer = document.getElementById('forgot-link-container');
 
-tabSignup.addEventListener('click', () => {
-  isSignUpMode = true;
-  tabSignup.classList.add('active');
-  tabLogin.classList.remove('active');
-  authTitle.dataset.i18n = 'auth.create';
-  authDesc.dataset.i18n = 'auth.createDesc';
-  authSubmitBtn.dataset.i18n = 'auth.signUp';
+function setAuthMode(signUp) {
+  isSignUpMode = signUp;
+  tabLogin.setAttribute('aria-pressed', String(!signUp));
+  tabSignup.setAttribute('aria-pressed', String(signUp));
+  passwordInput.autocomplete = signUp ? 'new-password' : 'current-password';
+  forgotLinkContainer.classList.toggle('hidden', signUp);
+  authTitle.dataset.i18n = signUp ? 'auth.create' : 'auth.welcome';
+  authDesc.dataset.i18n = signUp ? 'auth.createDesc' : 'auth.welcomeDesc';
+  authSubmitBtn.dataset.i18n = signUp ? 'auth.signUp' : 'auth.signIn';
   applyTranslations();
   authMessage.classList.add('hidden');
-});
+}
+
+tabLogin.addEventListener('click', () => setAuthMode(false));
+tabSignup.addEventListener('click', () => setAuthMode(true));
 
 // Password Reset DOM Elements
 const authCardMain = document.getElementById('auth-card-main');
@@ -158,6 +157,27 @@ backToLoginLink.addEventListener('click', (e) => {
   authMessage.classList.add('hidden');
 });
 
+// Show a message in one of the role="status" message boxes.
+function showMessage(el, text, type) {
+  el.textContent = text;
+  el.className = 'message ' + type;
+}
+
+// Run a request with its button disabled so a double click cannot send it twice.
+// `el` is the button itself or a form containing a submit button.
+async function withBusy(el, fn) {
+  const btn = el instanceof HTMLButtonElement ? el : el.querySelector('[type="submit"]');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.setAttribute('aria-busy', 'true');
+  try {
+    await fn();
+  } finally {
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+  }
+}
+
 // Forgot Password Form Submit
 forgotForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -166,25 +186,23 @@ forgotForm.addEventListener('submit', async (e) => {
   forgotMessage.classList.add('hidden');
 
   if (!isValidEmail(email)) {
-    showForgotMessage(t('auth.invalidEmail'), 'error');
+    showMessage(forgotMessage, t('auth.invalidEmail'), 'error');
     return;
   }
 
-  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
-  });
+  await withBusy(forgotForm, async () => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
 
-  if (error) {
-    showForgotMessage(error.message, 'error');
-  } else {
-    showForgotMessage(t('forgot.sent'), 'success');
-  }
+    if (error) {
+      showMessage(forgotMessage, authErrorText(error), 'error');
+    } else {
+      showMessage(forgotMessage, t('forgot.sent'), 'success');
+    }
+  });
 });
 
-function showForgotMessage(text, type) {
-  forgotMessage.textContent = text;
-  forgotMessage.className = `message ${type}`;
-}
 
 // Reset Password Form Submit
 resetPasswordForm.addEventListener('submit', async (e) => {
@@ -196,39 +214,37 @@ resetPasswordForm.addEventListener('submit', async (e) => {
   resetPasswordMessage.classList.add('hidden');
 
   if (!isValidPassword(newPassword)) {
-    showResetPasswordMessage(t('auth.invalidPassword'), 'error');
+    showMessage(resetPasswordMessage, t('auth.invalidPassword'), 'error');
     return;
   }
 
   if (newPassword !== confirmPassword) {
-    showResetPasswordMessage(t('setpw.mismatch'), 'error');
+    showMessage(resetPasswordMessage, t('setpw.mismatch'), 'error');
     return;
   }
 
-  const { data, error } = await supabase.auth.updateUser({
-    password: newPassword
-  });
+  await withBusy(resetPasswordForm, async () => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
 
-  if (error) {
-    showResetPasswordMessage(error.message, 'error');
-  } else {
-    showResetPasswordMessage(t('setpw.done'), 'success');
-    recoveryMode = false;
-    await supabase.auth.signOut(); // force a fresh sign-in with the new password
-    setTimeout(() => {
-      window.history.replaceState({}, document.title, window.location.pathname);
-      resetPasswordCard.classList.add('hidden');
-      authCardMain.classList.remove('hidden');
-      authView.classList.remove('hidden');
-      showAuthMessage(t('auth.updatedSignIn'), 'success');
-    }, 1500);
-  }
+    if (error) {
+      showMessage(resetPasswordMessage, authErrorText(error), 'error');
+    } else {
+      showMessage(resetPasswordMessage, t('setpw.done'), 'success');
+      recoveryMode = false;
+      await supabase.auth.signOut(); // force a fresh sign-in with the new password
+      setTimeout(() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        resetPasswordCard.classList.add('hidden');
+        authCardMain.classList.remove('hidden');
+        authView.classList.remove('hidden');
+        showMessage(authMessage, t('auth.updatedSignIn'), 'success');
+      }, 1500);
+    }
+  });
 });
 
-function showResetPasswordMessage(text, type) {
-  resetPasswordMessage.textContent = text;
-  resetPasswordMessage.className = `message ${type}`;
-}
 
 // Check Initial Session
 async function initSession() {
@@ -241,8 +257,8 @@ async function initSession() {
     authCardMain.classList.remove('hidden');
     forgotCard.classList.add('hidden');
     resetPasswordCard.classList.add('hidden');
-    const decodedDesc = errorDesc ? decodeURIComponent(errorDesc.replace(/\+/g, ' ')) : t('auth.linkExpired');
-    showAuthMessage(t('auth.linkError', { desc: decodedDesc }), 'error');
+    if (errorDesc) console.warn('Auth link error:', decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+    showMessage(authMessage, t('auth.linkError'), 'error');
     window.history.replaceState({}, document.title, window.location.pathname);
     return;
   }
@@ -293,6 +309,7 @@ function handleSession(session) {
   // The recovery link creates a real session; don't treat it as a login until the password is reset.
   if (recoveryMode) return;
 
+  const previousUserId = currentUser?.id;
   currentUser = session?.user || null;
   if (currentUser) {
     authView.classList.add('hidden');
@@ -300,8 +317,9 @@ function handleSession(session) {
     userEmailDisplay.textContent = currentUser.email;
     userEmailDisplay.title = currentUser.email;
     document.getElementById('profile-initial').textContent = currentUser.email[0].toUpperCase();
-    fetchCosts();
+    if (currentUser.id !== previousUserId) fetchCosts();
   } else {
+    fetchSeq++; // discard any in-flight fetch
     showExpenses();
     dashboardView.classList.add('hidden');
     authView.classList.remove('hidden');
@@ -309,19 +327,13 @@ function handleSession(session) {
     forgotCard.classList.add('hidden');
     resetPasswordCard.classList.add('hidden');
     costsCache = [];
+    stopEdit();
   }
 }
 
-// Validation Helpers
-function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-function isValidPassword(password) {
-  // 4 to 16 characters, must contain at least one letter and one number
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{4,16}$/;
-  return passwordRegex.test(password);
+function authErrorText(error) {
+  const key = authErrorKey(error);
+  return key ? t(key) : error.message;
 }
 
 // Auth Form Submit
@@ -335,35 +347,33 @@ authForm.addEventListener('submit', async (e) => {
 
   // Validate Email
   if (!isValidEmail(email)) {
-    showAuthMessage(t('auth.invalidEmail'), 'error');
+    showMessage(authMessage, t('auth.invalidEmail'), 'error');
     return;
   }
 
-  // Validate Password
-  if (!isValidPassword(password)) {
-    showAuthMessage(t('auth.invalidPassword'), 'error');
+  // Validate password format only when creating an account; sign-in leaves that to the server.
+  if (isSignUpMode && !isValidPassword(password)) {
+    showMessage(authMessage, t('auth.invalidPassword'), 'error');
     return;
   }
 
-  if (isSignUpMode) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      showAuthMessage(error.message, 'error');
+  await withBusy(authForm, async () => {
+    if (isSignUpMode) {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        showMessage(authMessage, authErrorText(error), 'error');
+      } else {
+        showMessage(authMessage, t('auth.created'), 'success');
+      }
     } else {
-      showAuthMessage(t('auth.created'), 'success');
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        showMessage(authMessage, authErrorText(error), 'error');
+      }
     }
-  } else {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      showAuthMessage(error.message, 'error');
-    }
-  }
+  });
 });
 
-function showAuthMessage(text, type) {
-  authMessage.textContent = text;
-  authMessage.className = `message ${type}`;
-}
 
 // Logout
 logoutBtn.addEventListener('click', async () => {
@@ -379,9 +389,14 @@ const statsGrid = document.getElementById('stats-grid');
 const changePasswordForm = document.getElementById('change-password-form');
 const changePasswordMessage = document.getElementById('change-password-message');
 
+const menuItems = [...profileMenu.querySelectorAll('.menu-item')];
+const menuIsOpen = () => !profileMenu.classList.contains('hidden');
+
+// Focus moves into the menu only when it is opened, never when a click or page change closes it.
 function toggleMenu(open) {
   profileMenu.classList.toggle('hidden', !open);
   profileBtn.setAttribute('aria-expanded', String(open));
+  if (open) menuItems[0].focus();
 }
 
 profileBtn.addEventListener('click', (e) => {
@@ -390,7 +405,16 @@ profileBtn.addEventListener('click', (e) => {
 });
 document.addEventListener('click', () => toggleMenu(false));
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { toggleMenu(false); profileBtn.focus(); }
+  if (!menuIsOpen()) return;
+  if (e.key === 'Escape') { toggleMenu(false); profileBtn.focus(); return; }
+  if (e.key === 'Tab') { toggleMenu(false); return; }
+  const i = menuItems.indexOf(document.activeElement);
+  let next = -1;
+  if (e.key === 'ArrowDown') next = (i + 1) % menuItems.length;
+  else if (e.key === 'ArrowUp') next = (i - 1 + menuItems.length) % menuItems.length;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = menuItems.length - 1;
+  if (next >= 0) { e.preventDefault(); menuItems[next].focus(); }
 });
 
 const passwordView = document.getElementById('password-view');
@@ -426,10 +450,6 @@ document.getElementById('menu-reset').addEventListener('click', showPassword);
 document.getElementById('account-back').addEventListener('click', showExpenses);
 document.getElementById('password-back').addEventListener('click', showExpenses);
 
-function showChangePasswordMessage(text, type) {
-  changePasswordMessage.textContent = text;
-  changePasswordMessage.className = `message ${type}`;
-}
 
 // Change password: re-verify the current password, then update and sign out other devices.
 changePasswordForm.addEventListener('submit', async (e) => {
@@ -439,62 +459,122 @@ changePasswordForm.addEventListener('submit', async (e) => {
   const confirm = document.getElementById('account-confirm-password').value;
 
   if (!isValidPassword(next)) {
-    showChangePasswordMessage(t('pw.invalidNew'), 'error');
+    showMessage(changePasswordMessage, t('pw.invalidNew'), 'error');
     return;
   }
   if (next !== confirm) {
-    showChangePasswordMessage(t('pw.mismatch'), 'error');
+    showMessage(changePasswordMessage, t('pw.mismatch'), 'error');
     return;
   }
   if (next === current) {
-    showChangePasswordMessage(t('pw.same'), 'error');
+    showMessage(changePasswordMessage, t('pw.same'), 'error');
     return;
   }
 
-  const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: current });
-  if (verifyError) {
-    showChangePasswordMessage(t('pw.wrongCurrent'), 'error');
-    return;
-  }
+  await withBusy(changePasswordForm, async () => {
+    const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: current });
+    if (verifyError) {
+      showMessage(changePasswordMessage, t('pw.wrongCurrent'), 'error');
+      return;
+    }
 
-  const { error } = await supabase.auth.updateUser({ password: next });
-  if (error) {
-    showChangePasswordMessage(error.message, 'error');
-    return;
-  }
-  await supabase.auth.signOut({ scope: 'others' });
-  changePasswordForm.reset();
-  showChangePasswordMessage(t('pw.updated'), 'success');
+    const { error } = await supabase.auth.updateUser({ password: next });
+    if (error) {
+      showMessage(changePasswordMessage, authErrorText(error), 'error');
+      return;
+    }
+    await supabase.auth.signOut({ scope: 'others' });
+    changePasswordForm.reset();
+    showMessage(changePasswordMessage, t('pw.updated'), 'success');
+  });
 });
 
 // Forgot the current password: reuse the email reset flow.
-document.getElementById('send-reset-link').addEventListener('click', async () => {
+const sendResetLinkBtn = document.getElementById('send-reset-link');
+sendResetLinkBtn.addEventListener('click', () => withBusy(sendResetLinkBtn, async () => {
   const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
     redirectTo: window.location.origin + window.location.pathname
   });
-  showChangePasswordMessage(error ? error.message : t('pw.linkSent', { email: currentUser.email }), error ? 'error' : 'success');
-});
+  showMessage(changePasswordMessage, error ? authErrorText(error) : t('pw.linkSent', { email: currentUser.email }), error ? 'error' : 'success');
+}));
 
 // Fetch Costs
 async function fetchCosts() {
   if (!currentUser) return;
+  const seq = ++fetchSeq;
+  const userId = currentUser.id;
 
-  const { data, error } = await supabase
+  const { data, error } = await fetchAllPages((from, to) => supabase
     .from('costs')
     .select('*')
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .order('id')
+    .range(from, to));
+
+  // Ignore a response that was superseded or belongs to a previous sign-in.
+  if (seq !== fetchSeq || currentUser?.id !== userId) return;
 
   if (error) {
     console.error('Error fetching costs:', error);
-    costList.innerHTML = `<li class="empty-state">${t('history.failed')}</li>`;
+    costList.innerHTML = `<li class="empty-state">${t('history.failed')} <button type="button" class="text-link link-btn" data-action="retry">${t('history.retry')}</button></li>`;
     return;
   }
 
-  costsCache = data || [];
+  costsCache = data;
   renderCosts();
 }
 
-// Add Cost
+// Edit mode: the one add form is reused to change an existing expense.
+const costFormTitle = document.getElementById('cost-form-title');
+const costSubmit = document.getElementById('cost-submit');
+const costCancel = document.getElementById('cost-cancel');
+
+function setFormMode(editing) {
+  costFormTitle.dataset.i18n = editing ? 'form.editTitle' : 'form.title';
+  costSubmit.dataset.i18n = editing ? 'form.save' : 'form.submit';
+  costCancel.classList.toggle('hidden', !editing);
+  applyTranslations();
+}
+
+function startEdit(id) {
+  const row = costsCache.find((c) => c.id === id);
+  if (!row) return;
+  editingId = id;
+  costDateInput.value = row.date;
+  costAmountInput.value = Number(row.amount).toFixed(2);
+  costNotesInput.value = row.notes || '';
+  // A category outside the six leaves nothing checked, so the required radio forces a choice.
+  costForm.querySelectorAll('input[name="category"]').forEach((r) => { r.checked = false; });
+  costForm.elements.category.value = row.category;
+  const picked = costForm.elements.category.value;
+  if (picked) costCard.dataset.cat = picked; else delete costCard.dataset.cat;
+  costMessage.classList.add('hidden');
+  syncDateShortcuts();
+  setFormMode(true);
+  renderCosts();
+  costCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  costAmountInput.focus();
+  costAmountInput.select();
+}
+
+function stopEdit() {
+  if (editingId === null) return;
+  editingId = null;
+  costForm.reset();
+  delete costCard.dataset.cat;
+  setCostDate(0);
+  costMessage.classList.add('hidden');
+  setFormMode(false);
+  renderCosts();
+}
+
+costCancel.addEventListener('click', () => { stopEdit(); costAmountInput.focus(); });
+costForm.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && editingId !== null) { e.preventDefault(); stopEdit(); }
+});
+
+// Add or save Cost
 costForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!currentUser) return;
@@ -504,33 +584,46 @@ costForm.addEventListener('submit', async (e) => {
   const date = costDateInput.value;
   const notes = costNotesInput.value.trim();
 
-  const { error } = await supabase.from('costs').insert([
-    {
-      user_id: currentUser.id,
-      amount,
-      category,
-      date,
-      notes
-    }
-  ]);
-
-  if (error) {
-    showCostMessage(error.message, 'error');
-  } else {
-    showCostMessage(t('form.added'), 'success');
-    costForm.reset();
-    delete costCard.dataset.cat;
-    setCostDate(0);
-    costAmountInput.focus(); // ready for the next expense
-    fetchCosts();
-    setTimeout(() => costMessage.classList.add('hidden'), 3000);
+  if (editingId !== null) {
+    const id = editingId;
+    await withBusy(costForm, async () => {
+      const { error } = await supabase.from('costs').update({ amount, category, date, notes }).eq('id', id);
+      if (error) {
+        showMessage(costMessage, error.message, 'error');
+        return;
+      }
+      if (editingId === id) stopEdit();
+      fetchCosts();
+      showToast(t('toast.updated'), { ms: 3000 });
+    });
+    return;
   }
+
+  await withBusy(costForm, async () => {
+    const { error } = await supabase.from('costs').insert([
+      {
+        user_id: currentUser.id,
+        amount,
+        category,
+        date,
+        notes
+      }
+    ]);
+
+    if (error) {
+      showMessage(costMessage, error.message, 'error');
+    } else {
+      showMessage(costMessage, t('form.added'), 'success');
+      costForm.reset();
+      delete costCard.dataset.cat;
+      setCostDate(0);
+      costAmountInput.focus(); // ready for the next expense
+      fetchCosts();
+      setTimeout(() => costMessage.classList.add('hidden'), 3000);
+    }
+  });
 });
 
-function showCostMessage(text, type) {
-  costMessage.textContent = text;
-  costMessage.className = `message ${type}`;
-}
 
 // Toast: one message at a time, auto-hides.
 const toast = document.getElementById('toast');
@@ -548,6 +641,17 @@ function showToast(text, { undo = null, ms = 7000 } = {}) {
   toastTimer = setTimeout(hideToast, ms);
 }
 
+// Keep the toast while the pointer is over it or focus is inside it.
+toast.addEventListener('mouseenter', () => clearTimeout(toastTimer));
+toast.addEventListener('focusin', () => clearTimeout(toastTimer));
+const restartToastTimer = () => {
+  if (toast.classList.contains('hidden') || toast.matches(':hover') || toast.contains(document.activeElement)) return;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 4000);
+};
+toast.addEventListener('mouseleave', restartToastTimer);
+toast.addEventListener('focusout', () => setTimeout(restartToastTimer, 0));
+
 function hideToast() {
   clearTimeout(toastTimer);
   toast.classList.add('hidden');
@@ -555,59 +659,88 @@ function hideToast() {
 }
 
 // Delete Cost: removed right away; "Undo" re-inserts the same row (same id), so nothing is lost if the tab closes.
-window.deleteCost = async function(id) {
+async function deleteCost(id, btn) {
   const row = costsCache.find(c => c.id === id);
+  if (btn) btn.disabled = true;
   const { error } = await supabase.from('costs').delete().eq('id', id);
   if (error) {
-    alert(t('history.deleteFailed', { msg: error.message }));
+    if (btn) btn.disabled = false;
+    showToast(t('history.deleteFailed', { msg: error.message }), { ms: 8000 });
     return;
   }
+  if (id === editingId) stopEdit();
   await fetchCosts();
   if (row) showToast(t('toast.deleted'), { undo: row });
-};
+}
+
+// One delegated listener for every row action (later tasks add more actions here).
+costList.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn || !costList.contains(btn)) return;
+  if (btn.dataset.action === 'edit') startEdit(btn.dataset.id);
+  if (btn.dataset.action === 'delete') deleteCost(btn.dataset.id, btn);
+  if (btn.dataset.action === 'retry') fetchCosts();
+});
 
 toastUndo.addEventListener('click', async () => {
   const row = undoRow;
   if (!row) return;
   hideToast();
-  const { error } = await supabase.from('costs').insert([row]);
-  if (error) {
-    showToast(t('toast.undoFailed', { msg: error.message }), { ms: 8000 });
-  } else {
-    await fetchCosts();
-    showToast(t('toast.restored'), { ms: 3000 });
-  }
+  await withBusy(toastUndo, async () => {
+    const { error } = await supabase.from('costs').insert([row]);
+    if (error) {
+      showToast(t('toast.undoFailed', { msg: error.message }), { ms: 8000 });
+    } else {
+      await fetchCosts();
+      showToast(t('toast.restored'), { ms: 3000 });
+    }
+  });
+});
+
+// Category filter: options are built from CATEGORIES so labels follow the language.
+function renderCategoryFilter() {
+  const selected = categoryFilter.value;
+  categoryFilter.querySelectorAll('option:not([value=""])').forEach((o) => o.remove());
+  CATEGORIES.forEach((c) => {
+    const opt = document.createElement('option');
+    opt.value = c.value;
+    opt.textContent = t('cat.' + c.value);
+    categoryFilter.append(opt);
+  });
+  categoryFilter.value = selected;
+}
+renderCategoryFilter();
+
+exportCsvBtn.addEventListener('click', () => {
+  const blob = new Blob([toCsv(filteredCosts)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `daily-costs-${localISO(0)}.csv`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 });
 
 // Render & Filter Costs
 function renderCosts() {
-  const searchTerm = searchFilter.value.toLowerCase();
-  const selectedCategory = categoryFilter.value;
+  // The expense being edited is gone (deleted here or elsewhere): leave edit mode, which re-renders.
+  if (editingId !== null && !costsCache.some((c) => c.id === editingId)) { stopEdit(); return; }
 
-  const filtered = costsCache.filter(item => {
-    const matchesSearch = item.category.toLowerCase().includes(searchTerm) ||
-                          (item.notes && item.notes.toLowerCase().includes(searchTerm)) ||
-                          item.date.includes(searchTerm);
-    const matchesCategory = selectedCategory === '' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  const filtered = filterExpenses(costsCache, {
+    search: searchFilter.value,
+    category: categoryFilter.value,
+    labelOf: (c) => t('cat.' + c)
   });
 
-  // Calculate stats
-  let totalAll = 0;
-  let totalMonth = 0;
-  const now = new Date();
-  const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  filteredCosts = filtered;
+  exportCsvBtn.classList.toggle('hidden', filtered.length === 0);
 
-  costsCache.forEach(item => {
-    const amt = Number(item.amount);
-    totalAll += amt;
-    if (item.date && item.date.startsWith(currentYearMonth)) {
-      totalMonth += amt;
-    }
-  });
-
-  statTotal.textContent = `$${totalAll.toFixed(2)}`;
-  statMonth.textContent = `$${totalMonth.toFixed(2)}`;
+  const stats = computeStats(costsCache, localISO(0));
+  statToday.textContent = formatMoney(stats.todayCents);
+  statTotal.textContent = formatMoney(stats.allCents);
+  statMonth.textContent = formatMoney(stats.monthCents);
 
   renderChart();
 
@@ -615,9 +748,9 @@ function renderCosts() {
   if (filtered.length === 0) {
     historySummary.classList.add('hidden');
   } else {
-    const shown = filtered.reduce((sum, i) => sum + Number(i.amount), 0);
+    const shown = groupByDay(filtered).reduce((sum, d) => sum + d.subtotalCents, 0);
     historySummary.textContent = t(filtered.length === 1 ? 'history.summaryOne' : 'history.summaryMany',
-      { n: filtered.length, total: `$${shown.toFixed(2)}` });
+      { n: filtered.length, total: formatMoney(shown) });
     historySummary.classList.remove('hidden');
   }
 
@@ -628,28 +761,20 @@ function renderCosts() {
   }
 
   // Group by day (the query is already newest-first) with a subtotal per day.
-  const days = new Map();
-  filtered.forEach(item => {
-    if (!days.has(item.date)) days.set(item.date, []);
-    days.get(item.date).push(item);
-  });
-
-  costList.innerHTML = [...days].map(([date, items]) => {
-    const subtotal = items.reduce((sum, i) => sum + Number(i.amount), 0);
-    return `
-    <li class="day-head"><span>${dayLabel(date)}</span><span>$${subtotal.toFixed(2)}</span></li>
+  costList.innerHTML = groupByDay(filtered).map(({ date, items, subtotalCents }) => `
+    <li class="day-head"><span>${dayLabel(date)}</span><span>${formatMoney(subtotalCents)}</span></li>
     ${items.map(item => `
-    <li class="cost-item" data-cat="${escapeHtml(item.category)}">
+    <li class="cost-item" data-cat="${escapeHtml(item.category)}"${item.id === editingId ? ' aria-current="true"' : ''}>
       <div class="cost-details">
         <div class="cost-cat">${catIcon(item.category)}${escapeHtml(t('cat.' + item.category))}</div>
         ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
       </div>
       <div class="cost-right">
-        <span class="cost-amount">$${Number(item.amount).toFixed(2)}</span>
-        <button class="btn btn-danger" onclick="deleteCost('${item.id}')">${t('history.delete')}</button>
+        <span class="cost-amount">${formatMoney(toCents(item.amount))}</span>
+        <button type="button" class="icon-btn" data-action="edit" data-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(t('history.editAria', { cat: t('cat.' + item.category), amount: formatMoney(toCents(item.amount)) }))}">${uiIcon('pencil')}</button>
+        <button type="button" class="icon-btn danger" data-action="delete" data-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(t('history.deleteAria', { cat: t('cat.' + item.category), amount: formatMoney(toCents(item.amount)) }))}">${uiIcon('trash')}</button>
       </div>
-    </li>`).join('')}`;
-  }).join('');
+    </li>`).join('')}`).join('');
 }
 
 // "Today", "Yesterday", otherwise a short local date such as "Sat, 7 Nov" (year added when not this year).
@@ -662,47 +787,47 @@ function dayLabel(iso) {
   return new Intl.DateTimeFormat(getLang(), opts).format(new Date(y, m - 1, d));
 }
 
-// Donut chart: all-time spend per category (same scope as the "Total" figure).
+// Donut chart: spend per category for this month or all time (chartPeriod).
+document.getElementById('chart-period').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-period]');
+  if (!btn) return;
+  chartPeriod = btn.dataset.period;
+  document.querySelectorAll('#chart-period [data-period]').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b === btn));
+  });
+  renderChart();
+});
 
 function renderChart() {
   const body = document.getElementById('chart-body');
-  const sums = new Map(CATEGORIES.map(c => [c.value, 0]));
-  let total = 0;
-  costsCache.forEach(item => {
-    const amt = Number(item.amount);
-    const key = sums.has(item.category) ? item.category : 'Other';
-    sums.set(key, sums.get(key) + amt);
-    total += amt;
-  });
+  const { totalCents, rows } = categoryBreakdown(periodItems(costsCache, chartPeriod, localISO(0)), CATEGORIES.map((c) => c.value));
 
-  if (total <= 0) {
-    body.innerHTML = `<p class="empty-state">${t('chart.empty')}</p>`;
+  if (totalCents <= 0) {
+    const key = chartPeriod === 'month' && costsCache.length > 0 ? 'chart.emptyMonth' : 'chart.empty';
+    body.innerHTML = `<p class="empty-state">${t(key)}</p>`;
     return;
   }
 
+  const colorOf = (value) => CATEGORIES.find((c) => c.value === value).color;
   const R = 15.9155; // circumference = 100, so dash lengths are percentages
   let offset = 25;   // start at 12 o'clock
-  const rows = CATEGORIES.filter(c => sums.get(c.value) > 0);
-  const arcs = rows.map(c => {
-    const pct = (sums.get(c.value) / total) * 100;
-    const arc = `<circle cx="21" cy="21" r="${R}" fill="none" stroke="${c.color}" stroke-width="6" stroke-dasharray="${pct} ${100 - pct}" stroke-dashoffset="${offset}"/>`;
-    offset -= pct;
+  const arcs = rows.map(r => {
+    const arc = `<circle cx="21" cy="21" r="${R}" fill="none" stroke="${colorOf(r.value)}" stroke-width="6" stroke-dasharray="${r.pct} ${100 - r.pct}" stroke-dashoffset="${offset}"/>`;
+    offset -= r.pct;
     return arc;
   }).join('');
 
-  const legend = rows
-    .sort((a, b) => sums.get(b.value) - sums.get(a.value))
-    .map(c => {
-      const amt = sums.get(c.value);
-      return `<li data-cat="${c.value}" style="--cat:${c.color}"><span class="legend-name">${catIcon(c.value)}${t('cat.' + c.value)}</span>` +
-        `<span class="legend-pct">${Math.round((amt / total) * 100)}%</span>` +
-        `<span class="legend-amt">$${amt.toFixed(2)}</span></li>`;
-    }).join('');
+  const legend = [...rows]
+    .sort((a, b) => b.cents - a.cents)
+    .map(r => `<li data-cat="${r.value}"><span class="legend-name">${catIcon(r.value)}${t('cat.' + r.value)}</span>` +
+      `<span class="legend-pct">${Math.round(r.pct)}%</span>` +
+      `<span class="legend-amt">${formatMoney(r.cents)}</span></li>`)
+    .join('');
 
   body.innerHTML = `
     <div class="donut">
       <svg viewBox="0 0 42 42" role="img" aria-label="${t('chart.aria')}">${arcs}</svg>
-      <div class="donut-center"><span>${t('chart.total')}</span><strong>$${total.toFixed(2)}</strong></div>
+      <div class="donut-center"><span>${t('chart.total')}</span><strong>${formatMoney(totalCents)}</strong></div>
     </div>
     <ul class="legend">${legend}</ul>`;
 }
@@ -710,16 +835,11 @@ function renderChart() {
 searchFilter.addEventListener('input', renderCosts);
 categoryFilter.addEventListener('change', renderCosts);
 
-function escapeHtml(str) {
-  return str.replace(/[&<>'"]/g, 
-    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-  );
-}
-
 // Re-render JS-built content when the language changes
 onLangChange(() => {
   document.querySelectorAll('.pw-toggle').forEach((b) => b.paint());
   renderCategoryPicker();
+  renderCategoryFilter();
   if (currentUser) {
     renderCosts();
     if (!accountView.classList.contains('hidden')) showAccount();
