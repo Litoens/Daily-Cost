@@ -182,6 +182,8 @@
         <div class="card-head">
           <h2 data-i18n="chart.title">Where it goes</h2>
           <div id="chart-period" class="date-shortcuts" role="group" data-i18n-aria="chart.periodAria">
+            <button type="button" class="chip-btn" data-period="today" aria-pressed="false" data-i18n="chart.today">Today</button>
+            <button type="button" class="chip-btn" data-period="week" aria-pressed="false" data-i18n="chart.week">This week</button>
             <button type="button" class="chip-btn" data-period="month" aria-pressed="true" data-i18n="chart.month">This month</button>
             <button type="button" class="chip-btn" data-period="all" aria-pressed="false" data-i18n="chart.all">All time</button>
           </div>
@@ -192,24 +194,51 @@
       </div>
 
       <!-- Cost History -->
-      <div class="card card-history">
-        <h2 data-i18n="history.title">Expense History</h2>
-        <div class="filter-bar">
-          <input type="text" id="search-filter" placeholder="Search category or notes..." data-i18n-placeholder="history.search" aria-label="Search expenses" data-i18n-aria="history.searchAria">
-          <select id="category-filter" aria-label="Filter by category" data-i18n-aria="history.filterAria">
-            <option value="" data-i18n="history.all">All Categories</option>
-          </select>
-        </div>
+      <section id="history-panel" class="card card-history" aria-labelledby="details-title" inert>
+        <div class="details-clip">
+          <div class="details-head">
+            <span id="details-icon" class="details-icon"></span>
+            <div class="details-heading">
+              <h2 id="details-title"></h2>
+              <span id="details-period" class="details-period"></span>
+            </div>
+            <button type="button" id="details-close" class="icon-btn" aria-label="Close details" data-i18n-aria="details.close"></button>
+          </div>
+          <div class="filter-bar">
+            <input type="text" id="search-filter" placeholder="Search notes or date..." data-i18n-placeholder="history.search" aria-label="Search expenses" data-i18n-aria="history.searchAria">
+          </div>
+          <div class="filter-grid">
+            <div class="form-group">
+              <label for="filter-min" data-i18n="filter.min">Amount from ($)</label>
+              <input type="number" id="filter-min" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label for="filter-max" data-i18n="filter.max">Amount up to ($)</label>
+              <input type="number" id="filter-max" min="0" step="0.01" inputmode="decimal" placeholder="&infin;">
+            </div>
+            <div class="form-group">
+              <label for="filter-from" data-i18n="filter.from">From date</label>
+              <input type="date" id="filter-from">
+            </div>
+            <div class="form-group">
+              <label for="filter-to" data-i18n="filter.to">To date</label>
+              <input type="date" id="filter-to">
+            </div>
+          </div>
 
-        <div class="summary-row">
-          <p id="history-summary" class="history-summary hidden"></p>
-          <button type="button" id="export-csv" class="text-link link-btn hidden" data-i18n="history.export">Export CSV</button>
-        </div>
+          <div class="summary-row">
+            <p id="history-summary" class="history-summary hidden"></p>
+            <span class="summary-actions">
+              <button type="button" id="filter-clear" class="action-btn hidden"><span id="filter-clear-icon" class="action-ico"></span><span data-i18n="filter.clear">Clear filters</span></button>
+              <button type="button" id="export-csv" class="action-btn hidden"><span id="export-csv-icon" class="action-ico"></span><span data-i18n="history.export">Export CSV</span></button>
+            </span>
+          </div>
 
-        <ul id="cost-list" class="cost-list">
-          <li class="empty-state" data-i18n="history.loading">Loading expenses...</li>
-        </ul>
-      </div>
+          <ul id="cost-list" class="cost-list">
+            <li class="empty-state" data-i18n="history.loading">Loading expenses...</li>
+          </ul>
+        </div>
+      </section>
     </main>
 
     <!-- Account page -->

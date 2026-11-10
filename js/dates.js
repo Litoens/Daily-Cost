@@ -11,3 +11,10 @@ export function localISO(daysAgo = 0, now = new Date()) {
 export function monthKey(iso) {
   return iso.slice(0, 7);
 }
+
+// First day (Monday) of the calendar week containing the given local day.
+export function weekStart(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const day = new Date(y, m - 1, d);
+  return localISO((day.getDay() + 6) % 7, day);
+}

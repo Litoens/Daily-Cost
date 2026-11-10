@@ -32,13 +32,27 @@ const statToday = document.getElementById('stat-today');
 const statTotal = document.getElementById('stat-total');
 const statMonth = document.getElementById('stat-month');
 const searchFilter = document.getElementById('search-filter');
-const categoryFilter = document.getElementById('category-filter');
+const historyPanel = document.getElementById('history-panel');
+const detailsTitle = document.getElementById('details-title');
+const detailsIcon = document.getElementById('details-icon');
+const detailsPeriod = document.getElementById('details-period');
+const detailsClose = document.getElementById('details-close');
+const filterMin = document.getElementById('filter-min');
+const filterMax = document.getElementById('filter-max');
+const filterFrom = document.getElementById('filter-from');
+const filterTo = document.getElementById('filter-to');
+const filterClear = document.getElementById('filter-clear');
+document.getElementById('filter-clear-icon').innerHTML = uiIcon('reset');
+document.getElementById('export-csv-icon').innerHTML = uiIcon('download');
+detailsClose.innerHTML = uiIcon('close');
 
 let isSignUpMode = false;
 let currentUser = null;
 let fetchSeq = 0;
 let costsCache = [];
 let chartPeriod = 'month'; // 'month' | 'all'
+let selectedCat = null; // category whose details panel is open, or null
+let chartData = { totalCents: 0, rows: [] };
 let editingId = null; // id of the expense loaded into the add form, or null when adding
 // Set before anything else so the recovery session is never mistaken for a login.
 let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
@@ -697,20 +711,6 @@ toastUndo.addEventListener('click', async () => {
   });
 });
 
-// Category filter: options are built from CATEGORIES so labels follow the language.
-function renderCategoryFilter() {
-  const selected = categoryFilter.value;
-  categoryFilter.querySelectorAll('option:not([value=""])').forEach((o) => o.remove());
-  CATEGORIES.forEach((c) => {
-    const opt = document.createElement('option');
-    opt.value = c.value;
-    opt.textContent = t('cat.' + c.value);
-    categoryFilter.append(opt);
-  });
-  categoryFilter.value = selected;
-}
-renderCategoryFilter();
-
 exportCsvBtn.addEventListener('click', () => {
   const blob = new Blob([toCsv(filteredCosts)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -723,19 +723,10 @@ exportCsvBtn.addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-// Render & Filter Costs
+// Dashboard totals and chart; the category details panel is rendered separately (renderDetails).
 function renderCosts() {
   // The expense being edited is gone (deleted here or elsewhere): leave edit mode, which re-renders.
   if (editingId !== null && !costsCache.some((c) => c.id === editingId)) { stopEdit(); return; }
-
-  const filtered = filterExpenses(costsCache, {
-    search: searchFilter.value,
-    category: categoryFilter.value,
-    labelOf: (c) => t('cat.' + c)
-  });
-
-  filteredCosts = filtered;
-  exportCsvBtn.classList.toggle('hidden', filtered.length === 0);
 
   const stats = computeStats(costsCache, localISO(0));
   statToday.textContent = formatMoney(stats.todayCents);
@@ -743,22 +734,53 @@ function renderCosts() {
   statMonth.textContent = formatMoney(stats.monthCents);
 
   renderChart();
+  renderDetails();
+}
 
-  // Summary of what the current search/filter shows
+// Details panel: the expenses of the selected category within the chart's period.
+// With no selection the panel collapses but keeps its last content so it can animate out.
+function renderDetails({ stagger = false } = {}) {
+  const open = selectedCat !== null;
+  historyPanel.classList.toggle('is-open', open);
+  historyPanel.inert = !open;
+  if (!open) return;
+
+  historyPanel.dataset.cat = selectedCat;
+  detailsIcon.innerHTML = catIcon(selectedCat);
+  detailsTitle.textContent = t('cat.' + selectedCat);
+
+  // Amount bounds are typed in dollars; '' means no bound. Date bounds replace the chart's period.
+  const toBound = (input) => (input.value === '' || !(Number(input.value) >= 0) ? null : Math.round(Number(input.value) * 100));
+  const minCents = toBound(filterMin);
+  const maxCents = toBound(filterMax);
+  const from = filterFrom.value;
+  const to = filterTo.value;
+  const customDates = from !== '' || to !== '';
+  detailsPeriod.textContent = customDates ? t('filter.custom') : t('chart.' + chartPeriod);
+  filterClear.classList.toggle('hidden', !(searchFilter.value || minCents !== null || maxCents !== null || customDates));
+
+  const filtered = filterExpenses(customDates ? costsCache : periodItems(costsCache, chartPeriod, localISO(0)), {
+    search: searchFilter.value,
+    category: selectedCat,
+    labelOf: (c) => t('cat.' + c),
+    minCents, maxCents, from, to
+  });
+  filteredCosts = filtered;
+  exportCsvBtn.classList.toggle('hidden', filtered.length === 0);
+
   if (filtered.length === 0) {
     historySummary.classList.add('hidden');
-  } else {
-    const shown = groupByDay(filtered).reduce((sum, d) => sum + d.subtotalCents, 0);
-    historySummary.textContent = t(filtered.length === 1 ? 'history.summaryOne' : 'history.summaryMany',
-      { n: filtered.length, total: formatMoney(shown) });
-    historySummary.classList.remove('hidden');
-  }
-
-  // Render list
-  if (filtered.length === 0) {
-    costList.innerHTML = `<li class="empty-state">${t('history.none')}</li>`;
+    // An impossible range is the likely reason for an empty list: say so rather than "not found".
+    const key = minCents !== null && maxCents !== null && minCents > maxCents ? 'filter.invertedAmount'
+      : from && to && from > to ? 'filter.invertedDate' : 'history.none';
+    costList.innerHTML = `<li class="empty-state">${t(key)}</li>`;
     return;
   }
+
+  const shown = groupByDay(filtered).reduce((sum, d) => sum + d.subtotalCents, 0);
+  historySummary.textContent = t(filtered.length === 1 ? 'history.summaryOne' : 'history.summaryMany',
+    { n: filtered.length, total: formatMoney(shown) });
+  historySummary.classList.remove('hidden');
 
   // Group by day (the query is already newest-first) with a subtotal per day.
   costList.innerHTML = groupByDay(filtered).map(({ date, items, subtotalCents }) => `
@@ -766,8 +788,9 @@ function renderCosts() {
     ${items.map(item => `
     <li class="cost-item" data-cat="${escapeHtml(item.category)}"${item.id === editingId ? ' aria-current="true"' : ''}>
       <div class="cost-details">
-        <div class="cost-cat">${catIcon(item.category)}${escapeHtml(t('cat.' + item.category))}</div>
-        ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
+        ${item.notes
+          ? `<div class="cost-note">${escapeHtml(item.notes)}</div>`
+          : `<div class="cost-note is-empty">${t('details.noNote')}</div>`}
       </div>
       <div class="cost-right">
         <span class="cost-amount">${formatMoney(toCents(item.amount))}</span>
@@ -775,6 +798,28 @@ function renderCosts() {
         <button type="button" class="icon-btn danger" data-action="delete" data-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(t('history.deleteAria', { cat: t('cat.' + item.category), amount: formatMoney(toCents(item.amount)) }))}">${uiIcon('trash')}</button>
       </div>
     </li>`).join('')}`).join('');
+
+  // Staggered entrance, only when the panel opens or switches category (not on every keystroke).
+  costList.classList.toggle('stagger', stagger);
+  if (stagger) {
+    costList.scrollTop = 0;
+    costList.querySelectorAll(':scope > li').forEach((li, i) => li.style.setProperty('--i', Math.min(i, 14)));
+  }
+}
+
+function clearFilters() {
+  [searchFilter, filterMin, filterMax, filterFrom, filterTo].forEach((input) => { input.value = ''; });
+}
+
+function selectCategory(value) {
+  selectedCat = value === selectedCat ? null : value;
+  clearFilters();
+  syncChartSelection();
+  renderDetails({ stagger: true });
+  if (selectedCat) {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(() => historyPanel.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }), 320);
+  }
 }
 
 // "Today", "Yesterday", otherwise a short local date such as "Sat, 7 Nov" (year added when not this year).
@@ -796,14 +841,20 @@ document.getElementById('chart-period').addEventListener('click', (e) => {
     b.setAttribute('aria-pressed', String(b === btn));
   });
   renderChart();
+  renderDetails({ stagger: true });
 });
 
 function renderChart() {
   const body = document.getElementById('chart-body');
-  const { totalCents, rows } = categoryBreakdown(periodItems(costsCache, chartPeriod, localISO(0)), CATEGORIES.map((c) => c.value));
+  chartData = categoryBreakdown(periodItems(costsCache, chartPeriod, localISO(0)), CATEGORIES.map((c) => c.value));
+  const { totalCents, rows } = chartData;
+
+  // The open category has no spend left in this period (deleted, or period switched): close it.
+  if (selectedCat && !rows.some((r) => r.value === selectedCat)) selectedCat = null;
 
   if (totalCents <= 0) {
-    const key = chartPeriod === 'month' && costsCache.length > 0 ? 'chart.emptyMonth' : 'chart.empty';
+    const key = costsCache.length === 0 || chartPeriod === 'all' ? 'chart.empty'
+      : chartPeriod === 'month' ? 'chart.emptyMonth' : 'chart.emptyRange';
     body.innerHTML = `<p class="empty-state">${t(key)}</p>`;
     return;
   }
@@ -812,34 +863,69 @@ function renderChart() {
   const R = 15.9155; // circumference = 100, so dash lengths are percentages
   let offset = 25;   // start at 12 o'clock
   const arcs = rows.map(r => {
-    const arc = `<circle cx="21" cy="21" r="${R}" fill="none" stroke="${colorOf(r.value)}" stroke-width="6" stroke-dasharray="${r.pct} ${100 - r.pct}" stroke-dashoffset="${offset}"/>`;
+    const arc = `<circle class="arc" data-cat="${r.value}" cx="21" cy="21" r="${R}" fill="none" stroke="${colorOf(r.value)}" stroke-width="6" stroke-dasharray="${r.pct} ${100 - r.pct}" stroke-dashoffset="${offset}"/>`;
     offset -= r.pct;
     return arc;
   }).join('');
 
   const legend = [...rows]
     .sort((a, b) => b.cents - a.cents)
-    .map(r => `<li data-cat="${r.value}"><span class="legend-name">${catIcon(r.value)}${t('cat.' + r.value)}</span>` +
+    .map(r => `<li data-cat="${r.value}"><button type="button" class="legend-row" aria-pressed="false" aria-controls="history-panel">` +
+      `<span class="legend-name">${catIcon(r.value)}${t('cat.' + r.value)}</span>` +
       `<span class="legend-pct">${Math.round(r.pct)}%</span>` +
-      `<span class="legend-amt">${formatMoney(r.cents)}</span></li>`)
+      `<span class="legend-amt">${formatMoney(r.cents)}</span></button></li>`)
     .join('');
 
   body.innerHTML = `
     <div class="donut">
       <svg viewBox="0 0 42 42" role="img" aria-label="${t('chart.aria')}">${arcs}</svg>
-      <div class="donut-center"><span>${t('chart.total')}</span><strong>${formatMoney(totalCents)}</strong></div>
+      <div class="donut-center"><span></span><strong></strong></div>
     </div>
-    <ul class="legend">${legend}</ul>`;
+    <div class="legend-wrap">
+      <ul class="legend">${legend}</ul>
+      <p class="legend-hint">${t('details.hint')}</p>
+    </div>`;
+  syncChartSelection();
 }
 
-searchFilter.addEventListener('input', renderCosts);
-categoryFilter.addEventListener('change', renderCosts);
+// Highlight the selected category in the donut and legend without rebuilding them,
+// so the CSS transitions run and keyboard focus stays on the clicked legend row.
+function syncChartSelection() {
+  const body = document.getElementById('chart-body');
+  const label = body.querySelector('.donut-center span');
+  if (!label) return;
+  body.classList.toggle('has-sel', selectedCat !== null);
+  body.querySelectorAll('[data-cat]').forEach((el) => el.classList.toggle('is-sel', el.dataset.cat === selectedCat));
+  body.querySelectorAll('.legend-row').forEach((b) => b.setAttribute('aria-pressed', String(b.parentElement.dataset.cat === selectedCat)));
+  const row = chartData.rows.find((r) => r.value === selectedCat);
+  label.textContent = row ? t('cat.' + row.value) : t('chart.total');
+  body.querySelector('.donut-center strong').textContent = formatMoney(row ? row.cents : chartData.totalCents);
+}
+
+// Click a legend row or a donut slice to open that category's details; click it again to close.
+document.getElementById('chart-body').addEventListener('click', (e) => {
+  const target = e.target.closest('.legend-row, .arc');
+  if (!target) return;
+  selectCategory((target.closest('[data-cat]') || target).dataset.cat);
+});
+detailsClose.addEventListener('click', () => {
+  const value = selectedCat;
+  selectCategory(value);
+  document.querySelector(`#chart-body li[data-cat="${CSS.escape(value)}"] .legend-row`)?.focus();
+});
+historyPanel.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && selectedCat) { e.preventDefault(); detailsClose.click(); }
+});
+
+[searchFilter, filterMin, filterMax, filterFrom, filterTo].forEach((input) => {
+  input.addEventListener('input', () => renderDetails());
+});
+filterClear.addEventListener('click', () => { clearFilters(); renderDetails(); searchFilter.focus(); });
 
 // Re-render JS-built content when the language changes
 onLangChange(() => {
   document.querySelectorAll('.pw-toggle').forEach((b) => b.paint());
   renderCategoryPicker();
-  renderCategoryFilter();
   if (currentUser) {
     renderCosts();
     if (!accountView.classList.contains('hidden')) showAccount();
