@@ -21,6 +21,17 @@ test('filterExpenses', () => {
   assert.deepEqual(ids(filterExpenses(rows, { category: 'Meat' })), ['b']);
   assert.deepEqual(ids(filterExpenses(rows, { search: 'coffee', category: 'Meat' })), []);
 });
+test('filterExpenses amount and date bounds', () => {
+  assert.deepEqual(ids(filterExpenses(rows, { minCents: 1250 })), ['a', 'b']);       // inclusive
+  assert.deepEqual(ids(filterExpenses(rows, { maxCents: 1250 })), ['a', 'c', 'd']);  // inclusive
+  assert.deepEqual(ids(filterExpenses(rows, { minCents: 100, maxCents: 1500 })), ['a']);
+  assert.deepEqual(ids(filterExpenses(rows, { minCents: 0 })), ['a', 'b', 'c', 'd']); // 0 is a real bound
+  assert.deepEqual(ids(filterExpenses(rows, { from: '2026-11-09' })), ['a', 'b']);
+  assert.deepEqual(ids(filterExpenses(rows, { to: '2026-11-08' })), ['c', 'd']);
+  assert.deepEqual(ids(filterExpenses(rows, { from: '2026-11-01', to: '2026-11-08' })), ['c']);
+  assert.deepEqual(ids(filterExpenses(rows, { search: 'bus', minCents: 1000, from: '2026-11-01' })), ['a']);
+  assert.deepEqual(ids(filterExpenses(rows, { minCents: 5000, maxCents: 100 })), []);  // inverted range
+});
 test('groupByDay', () => {
   const days = groupByDay(rows);
   assert.deepEqual(days.map((d) => d.date), ['2026-11-09', '2026-11-08', '2026-10-31']);
@@ -47,6 +58,13 @@ test('periodItems', () => {
   assert.deepEqual(ids(periodItems(rows, 'month', '2026-11-09')), ['a', 'b', 'c']);
   assert.deepEqual(ids(periodItems(rows, 'all', '2026-11-09')), ['a', 'b', 'c', 'd']);
   assert.deepEqual(ids(periodItems(rows, 'month', '2026-12-01')), []);
+  assert.deepEqual(ids(periodItems(rows, 'today', '2026-11-09')), ['a', 'b']);
+  assert.deepEqual(ids(periodItems(rows, 'today', '2026-11-10')), []);
+  // 2026-11-09 is a Monday: its week runs Mon 9 to Sun 15, so Sunday 8 belongs to the previous week.
+  assert.deepEqual(ids(periodItems(rows, 'week', '2026-11-09')), ['a', 'b']);
+  assert.deepEqual(ids(periodItems(rows, 'week', '2026-11-15')), ['a', 'b']);
+  assert.deepEqual(ids(periodItems(rows, 'week', '2026-11-08')), ['c']);
+  assert.deepEqual(ids(periodItems(rows, 'week', '2026-11-16')), []);
 });
 
 test('toCsv', () => {

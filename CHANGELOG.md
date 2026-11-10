@@ -18,6 +18,10 @@ All notable changes to this project will be documented in this file.
 - **Chart period:** the category chart switches between this month (default) and all time.
 - **CSV export** of the filtered expense list.
 - **Favicon, theme colour and web manifest.**
+- **Category details:** the expense history is hidden until you click a category in the chart legend (or its donut slice). It then slides open under the chart with that category's expenses for the chosen period, with a staggered entrance and the chart highlighting the selection. Click again, press Escape or use the close button to hide it. The old category dropdown in the history is gone.
+- **Details filters:** inside a category, filter by amount (from / up to) and by date (from / to) together with the search box. Setting a date searches all expenses instead of the chart period. Invalid ranges say so instead of showing an empty list.
+- **Chart periods:** Today and This week (Monday to Sunday) join This month and All time.
+- **Clear filters** and **Export CSV** are now icon buttons.
 - **Unit tests** for the money, date, validation and expense logic, run in CI (`node --test`).
 
 ### Changed

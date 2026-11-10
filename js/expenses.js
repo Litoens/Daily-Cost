@@ -1,6 +1,6 @@
 // Pure expense helpers: filtering, grouping, stats and chart maths. No DOM, no i18n.
 import { toCents, sumCents } from './money.js';
-import { monthKey } from './dates.js';
+import { monthKey, weekStart, localISO } from './dates.js';
 
 export function escapeHtml(str) {
   return str.replace(/[&<>'"]/g,
@@ -8,7 +8,10 @@ export function escapeHtml(str) {
   );
 }
 
-export function filterExpenses(items, { search = '', category = '', labelOf = (c) => c } = {}) {
+// minCents / maxCents bound the amount and from / to (ISO dates) bound the date, all inclusive.
+// A null bound is ignored. They combine with the text search and the category.
+export function filterExpenses(items, { search = '', category = '', labelOf = (c) => c,
+  minCents = null, maxCents = null, from = '', to = '' } = {}) {
   const needle = search.toLowerCase();
   return items.filter((item) => {
     const matchesSearch =
@@ -16,7 +19,15 @@ export function filterExpenses(items, { search = '', category = '', labelOf = (c
       labelOf(item.category).toLowerCase().includes(needle) ||
       (item.notes && item.notes.toLowerCase().includes(needle)) ||
       item.date.includes(needle);
-    return matchesSearch && (category === '' || item.category === category);
+    if (!matchesSearch || (category !== '' && item.category !== category)) return false;
+    if (from && item.date < from) return false;
+    if (to && item.date > to) return false;
+    if (minCents !== null || maxCents !== null) {
+      const cents = toCents(item.amount);
+      if (minCents !== null && cents < minCents) return false;
+      if (maxCents !== null && cents > maxCents) return false;
+    }
+    return true;
   });
 }
 
@@ -43,11 +54,21 @@ export function computeStats(items, todayISO) {
   return { todayCents, monthCents, allCents };
 }
 
-// 'month' keeps rows in the same calendar month as todayISO; 'all' keeps everything.
+// Rows inside a period relative to todayISO: 'today', 'week' (Monday to Sunday), 'month' (calendar
+// month) or 'all'.
 export function periodItems(items, period, todayISO) {
-  if (period !== 'month') return items;
-  const month = monthKey(todayISO);
-  return items.filter((item) => item.date && monthKey(item.date) === month);
+  if (period === 'today') return items.filter((item) => item.date === todayISO);
+  if (period === 'week') {
+    const start = weekStart(todayISO);
+    const [y, m, d] = start.split('-').map(Number);
+    const end = localISO(-6, new Date(y, m - 1, d));
+    return items.filter((item) => item.date >= start && item.date <= end);
+  }
+  if (period === 'month') {
+    const month = monthKey(todayISO);
+    return items.filter((item) => item.date && monthKey(item.date) === month);
+  }
+  return items;
 }
 
 export function categoryBreakdown(items, categoryValues) {
