@@ -1,10 +1,18 @@
 import { supabase } from './supabaseClient.js';
-import { catIcon, uiIcon, CATEGORIES } from './icons.js';
+import { catIcon, uiIcon, CATEGORIES, SOURCES } from './icons.js';
 import { t, getLang, applyTranslations, onLangChange } from './i18n.js';
 import { localISO } from './dates.js';
-import { formatMoney, toCents } from './money.js';
+import { formatMoney, formatSignedMoney, toCents } from './money.js';
 import { isValidEmail, isValidPassword, authErrorKey } from './validate.js';
-import { escapeHtml, filterExpenses, groupByDay, computeStats, categoryBreakdown, periodItems, fetchAllPages, toCsv } from './expenses.js';
+import { escapeHtml, filterExpenses, groupByDay, categoryBreakdown, periodItems, fetchAllPages, toCsv } from './expenses.js';
+import { monthSummary } from './income.js';
+
+// Expenses live in `costs` keyed by `category`; income lives in `income` keyed by `source`.
+// Everything that differs between the two kinds of entry is read from here.
+const KINDS = {
+  expense: { table: 'costs', field: 'category', options: CATEGORIES, label: (v) => t('cat.' + v) },
+  income: { table: 'income', field: 'source', options: SOURCES, label: (v) => t('src.' + v) }
+};
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -23,14 +31,22 @@ const costAmountInput = document.getElementById('cost-amount');
 const costCategoryPicker = document.getElementById('cost-category');
 const costNotesInput = document.getElementById('cost-notes');
 const costMessage = document.getElementById('cost-message');
+const costFormTitle = document.getElementById('cost-form-title');
+const costSubmit = document.getElementById('cost-submit');
+const costCancel = document.getElementById('cost-cancel');
+const costCategoryLabel = document.getElementById('cost-category-label');
 
 const costList = document.getElementById('cost-list');
 const historySummary = document.getElementById('history-summary');
 const exportCsvBtn = document.getElementById('export-csv');
-let filteredCosts = [];
-const statToday = document.getElementById('stat-today');
-const statTotal = document.getElementById('stat-total');
-const statMonth = document.getElementById('stat-month');
+let filteredCosts = []; // rows currently listed in the details panel (expenses or income), for CSV export
+const statEarnedBtn = document.getElementById('stat-earned-btn');
+const statEarnedLabel = document.getElementById('stat-earned-label');
+const statEarned = document.getElementById('stat-earned');
+const statSpentLabel = document.getElementById('stat-spent-label');
+const statSpent = document.getElementById('stat-spent');
+const statLeft = document.getElementById('stat-left');
+document.getElementById('stat-more-icon').innerHTML = uiIcon('chevron');
 const searchFilter = document.getElementById('search-filter');
 const historyPanel = document.getElementById('history-panel');
 const detailsTitle = document.getElementById('details-title');
@@ -52,8 +68,15 @@ let fetchSeq = 0;
 let costsCache = [];
 let chartPeriod = 'month'; // 'month' | 'all'
 let selectedCat = null; // category whose details panel is open, or null
+let incomeOpen = false; // the details panel lists income instead (never both: opening one closes the other)
+let incomeSeq = 0;
+let incomeCache = [];
+let incomeState = 'loading'; // 'loading' | 'ok' | 'failed'
 let chartData = { totalCents: 0, rows: [] };
-let editingId = null; // id of the expense loaded into the add form, or null when adding
+let entryKind = 'expense'; // which kind the add form records: 'expense' | 'income'
+let editingId = null; // id of the entry loaded into the add form, or null when adding
+let editingKind = null; // kind of that entry
+let kindBeforeEdit = 'expense'; // the form goes back to this kind when editing ends
 // Set before anything else so the recovery session is never mistaken for a login.
 let recoveryMode = /type=recovery/.test(window.location.hash + window.location.search);
 
@@ -73,17 +96,46 @@ setCostDate(0);
 // Tint the add-expense card with the chosen category's colour.
 const costCard = costForm.closest('.card');
 
-// Category picker: one radio chip per category (native radios give keyboard and `required` for free).
-function renderCategoryPicker() {
-  const selected = costForm.elements.category?.value || '';
-  costCategoryPicker.innerHTML = CATEGORIES.map((c, i) => `
+// Category picker: one radio chip per category, or per income source in Income mode
+// (native radios give keyboard and `required` for free).
+function renderCategoryPicker(selected = costForm.elements.category?.value || '') {
+  const { options, label } = KINDS[entryKind];
+  costCategoryPicker.innerHTML = options.map((c, i) => `
     <label class="cat-opt" data-cat="${c.value}">
       <input type="radio" name="category" value="${c.value}"${c.value === selected ? ' checked' : ''}${i === 0 ? ' required' : ''}>
-      <span class="cat-opt-body">${catIcon(c.value)}<span>${t('cat.' + c.value)}</span></span>
+      <span class="cat-opt-body">${catIcon(c.value)}<span>${label(c.value)}</span></span>
     </label>`).join('');
 }
 renderCategoryPicker();
 costCategoryPicker.addEventListener('change', () => { costCard.dataset.cat = costForm.elements.category.value; });
+
+// Expense / Income switch. Switching clears the chosen category or source but keeps amount, date and notes.
+const kindRadios = [...costForm.querySelectorAll('input[name="kind"]')];
+function setEntryKind(kind) {
+  entryKind = kind;
+  kindRadios.forEach((r) => { r.checked = r.value === kind; });
+  costCard.dataset.kind = kind;
+  delete costCard.dataset.cat;
+  renderCategoryPicker('');
+  syncFormText();
+}
+kindRadios.forEach((r) => r.addEventListener('change', () => {
+  if (r.checked) { setEntryKind(r.value); costMessage.classList.add('hidden'); }
+}));
+
+// Title, button, picker label and notes hint follow the kind and whether an entry is being edited.
+function syncFormText() {
+  const income = entryKind === 'income';
+  const editing = editingId !== null;
+  costFormTitle.dataset.i18n = editing ? (income ? 'income.editTitle' : 'form.editTitle') : (income ? 'income.formTitle' : 'form.title');
+  costSubmit.dataset.i18n = editing ? 'form.save' : (income ? 'income.submit' : 'form.submit');
+  costCategoryLabel.dataset.i18n = income ? 'form.source' : 'form.category';
+  costNotesInput.dataset.i18nPlaceholder = income ? 'income.notesPlaceholder' : 'form.notesPlaceholder';
+  costCancel.classList.toggle('hidden', !editing);
+  // While editing, the switch is locked so a row can never move between tables.
+  kindRadios.forEach((r) => { r.disabled = editing; });
+  applyTranslations();
+}
 
 // Show/hide toggle on every password field.
 function enhancePasswordFields() {
@@ -331,9 +383,18 @@ function handleSession(session) {
     userEmailDisplay.textContent = currentUser.email;
     userEmailDisplay.title = currentUser.email;
     document.getElementById('profile-initial').textContent = currentUser.email[0].toUpperCase();
-    if (currentUser.id !== previousUserId) fetchCosts();
+    if (currentUser.id !== previousUserId) {
+      incomeState = 'loading';
+      fetchCosts();
+      fetchIncome();
+    }
   } else {
     fetchSeq++; // discard any in-flight fetch
+    incomeSeq++;
+    incomeCache = [];
+    incomeState = 'loading';
+    selectedCat = null;
+    incomeOpen = false;
     showExpenses();
     dashboardView.classList.add('hidden');
     authView.classList.remove('hidden');
@@ -342,6 +403,7 @@ function handleSession(session) {
     resetPasswordCard.classList.add('hidden');
     costsCache = [];
     stopEdit();
+    if (entryKind !== 'expense') { entryKind = 'expense'; resetForm(); } // the next sign-in opens in Expense mode
   }
 }
 
@@ -539,33 +601,63 @@ async function fetchCosts() {
   renderCosts();
 }
 
-// Edit mode: the one add form is reused to change an existing expense.
-const costFormTitle = document.getElementById('cost-form-title');
-const costSubmit = document.getElementById('cost-submit');
-const costCancel = document.getElementById('cost-cancel');
+// Fetch income: same paging and stale-response guard as costs, into its own cache.
+// If it fails (for example the income migration has not been run) expenses keep working
+// and Earned / Left show "-".
+async function fetchIncome() {
+  if (!currentUser) return;
+  const seq = ++incomeSeq;
+  const userId = currentUser.id;
 
-function setFormMode(editing) {
-  costFormTitle.dataset.i18n = editing ? 'form.editTitle' : 'form.title';
-  costSubmit.dataset.i18n = editing ? 'form.save' : 'form.submit';
-  costCancel.classList.toggle('hidden', !editing);
-  applyTranslations();
+  const { data, error } = await fetchAllPages((from, to) => supabase
+    .from('income')
+    .select('*')
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .order('id')
+    .range(from, to));
+
+  if (seq !== incomeSeq || currentUser?.id !== userId) return;
+
+  if (error) {
+    console.error('Error fetching income:', error);
+    incomeCache = [];
+    incomeState = 'failed';
+  } else {
+    incomeCache = data;
+    incomeState = 'ok';
+  }
+  renderCosts();
 }
 
-function startEdit(id) {
-  const row = costsCache.find((c) => c.id === id);
+const cacheOf = (kind) => (kind === 'income' ? incomeCache : costsCache);
+const refetch = (kind) => (kind === 'income' ? fetchIncome() : fetchCosts());
+
+// Empty the add form but stay in the kind it is in.
+function resetForm() {
+  costForm.reset(); // also re-checks the default "expense" radio, so restore the kind
+  setEntryKind(entryKind);
+  setCostDate(0);
+}
+
+// Edit mode: the one add form is reused to change an existing expense or income entry.
+function startEdit(id, kind) {
+  const row = cacheOf(kind).find((c) => c.id === id);
   if (!row) return;
+  if (editingId === null) kindBeforeEdit = entryKind;
   editingId = id;
+  editingKind = kind;
+  setEntryKind(kind);
   costDateInput.value = row.date;
   costAmountInput.value = Number(row.amount).toFixed(2);
   costNotesInput.value = row.notes || '';
-  // A category outside the six leaves nothing checked, so the required radio forces a choice.
-  costForm.querySelectorAll('input[name="category"]').forEach((r) => { r.checked = false; });
-  costForm.elements.category.value = row.category;
+  // A value outside the fixed list leaves nothing checked, so the required radio forces a choice.
+  costForm.elements.category.value = row[KINDS[kind].field];
   const picked = costForm.elements.category.value;
   if (picked) costCard.dataset.cat = picked; else delete costCard.dataset.cat;
   costMessage.classList.add('hidden');
   syncDateShortcuts();
-  setFormMode(true);
+  syncFormText();
   renderCosts();
   costCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   costAmountInput.focus();
@@ -575,11 +667,10 @@ function startEdit(id) {
 function stopEdit() {
   if (editingId === null) return;
   editingId = null;
-  costForm.reset();
-  delete costCard.dataset.cat;
-  setCostDate(0);
+  editingKind = null;
+  entryKind = kindBeforeEdit;
+  resetForm();
   costMessage.classList.add('hidden');
-  setFormMode(false);
   renderCosts();
 }
 
@@ -593,46 +684,41 @@ costForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!currentUser) return;
 
-  const amount = parseFloat(costAmountInput.value);
-  const category = costForm.elements.category.value;
-  const date = costDateInput.value;
-  const notes = costNotesInput.value.trim();
+  const kind = editingId !== null ? editingKind : entryKind;
+  const { table, field } = KINDS[kind];
+  const income = kind === 'income';
+  const fields = {
+    amount: parseFloat(costAmountInput.value),
+    [field]: costForm.elements.category.value,
+    date: costDateInput.value,
+    notes: costNotesInput.value.trim()
+  };
 
   if (editingId !== null) {
     const id = editingId;
     await withBusy(costForm, async () => {
-      const { error } = await supabase.from('costs').update({ amount, category, date, notes }).eq('id', id);
+      const { error } = await supabase.from(table).update(fields).eq('id', id);
       if (error) {
         showMessage(costMessage, error.message, 'error');
         return;
       }
       if (editingId === id) stopEdit();
-      fetchCosts();
-      showToast(t('toast.updated'), { ms: 3000 });
+      refetch(kind);
+      showToast(t(income ? 'income.updated' : 'toast.updated'), { ms: 3000 });
     });
     return;
   }
 
   await withBusy(costForm, async () => {
-    const { error } = await supabase.from('costs').insert([
-      {
-        user_id: currentUser.id,
-        amount,
-        category,
-        date,
-        notes
-      }
-    ]);
+    const { error } = await supabase.from(table).insert([{ user_id: currentUser.id, ...fields }]);
 
     if (error) {
       showMessage(costMessage, error.message, 'error');
     } else {
-      showMessage(costMessage, t('form.added'), 'success');
-      costForm.reset();
-      delete costCard.dataset.cat;
-      setCostDate(0);
-      costAmountInput.focus(); // ready for the next expense
-      fetchCosts();
+      showMessage(costMessage, t(income ? 'income.added' : 'form.added'), 'success');
+      resetForm(); // stays in the kind it was in
+      costAmountInput.focus(); // ready for the next entry
+      refetch(kind);
       setTimeout(() => costMessage.classList.add('hidden'), 3000);
     }
   });
@@ -644,7 +730,7 @@ const toast = document.getElementById('toast');
 const toastText = document.getElementById('toast-text');
 const toastUndo = document.getElementById('toast-undo');
 let toastTimer = null;
-let undoRow = null;
+let undoRow = null; // { kind, row } that Undo puts back
 
 function showToast(text, { undo = null, ms = 7000 } = {}) {
   clearTimeout(toastTimer);
@@ -672,82 +758,115 @@ function hideToast() {
   undoRow = null;
 }
 
-// Delete Cost: removed right away; "Undo" re-inserts the same row (same id), so nothing is lost if the tab closes.
-async function deleteCost(id, btn) {
-  const row = costsCache.find(c => c.id === id);
+// Delete an entry: removed right away; "Undo" re-inserts the same row (same id), so nothing is lost if the tab closes.
+async function deleteEntry(id, kind, btn) {
+  const income = kind === 'income';
+  const row = cacheOf(kind).find(c => c.id === id);
   if (btn) btn.disabled = true;
-  const { error } = await supabase.from('costs').delete().eq('id', id);
+  const { error } = await supabase.from(KINDS[kind].table).delete().eq('id', id);
   if (error) {
     if (btn) btn.disabled = false;
-    showToast(t('history.deleteFailed', { msg: error.message }), { ms: 8000 });
+    showToast(t(income ? 'income.deleteFailed' : 'history.deleteFailed', { msg: error.message }), { ms: 8000 });
     return;
   }
   if (id === editingId) stopEdit();
-  await fetchCosts();
-  if (row) showToast(t('toast.deleted'), { undo: row });
+  await refetch(kind);
+  if (row) showToast(t(income ? 'income.deleted' : 'toast.deleted'), { undo: { kind, row } });
 }
 
-// One delegated listener for every row action (later tasks add more actions here).
+// One delegated listener for every row action. Rows say which kind they are via data-kind.
 costList.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
   if (!btn || !costList.contains(btn)) return;
-  if (btn.dataset.action === 'edit') startEdit(btn.dataset.id);
-  if (btn.dataset.action === 'delete') deleteCost(btn.dataset.id, btn);
-  if (btn.dataset.action === 'retry') fetchCosts();
+  const kind = btn.dataset.kind === 'income' ? 'income' : 'expense';
+  if (btn.dataset.action === 'edit') startEdit(btn.dataset.id, kind);
+  if (btn.dataset.action === 'delete') deleteEntry(btn.dataset.id, kind, btn);
+  if (btn.dataset.action === 'retry') refetch(kind);
 });
 
 toastUndo.addEventListener('click', async () => {
-  const row = undoRow;
-  if (!row) return;
+  const undo = undoRow;
+  if (!undo) return;
+  const income = undo.kind === 'income';
   hideToast();
   await withBusy(toastUndo, async () => {
-    const { error } = await supabase.from('costs').insert([row]);
+    const { error } = await supabase.from(KINDS[undo.kind].table).insert([undo.row]);
     if (error) {
-      showToast(t('toast.undoFailed', { msg: error.message }), { ms: 8000 });
+      showToast(t(income ? 'income.undoFailed' : 'toast.undoFailed', { msg: error.message }), { ms: 8000 });
     } else {
-      await fetchCosts();
-      showToast(t('toast.restored'), { ms: 3000 });
+      await refetch(undo.kind);
+      showToast(t(income ? 'income.restored' : 'toast.restored'), { ms: 3000 });
     }
   });
 });
 
 exportCsvBtn.addEventListener('click', () => {
-  const blob = new Blob([toCsv(filteredCosts)], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([toCsv(filteredCosts, incomeOpen ? 'source' : 'category')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `daily-costs-${localISO(0)}.csv`;
+  a.download = `${incomeOpen ? 'daily-income' : 'daily-costs'}-${localISO(0)}.csv`;
   document.body.append(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
 });
 
-// Dashboard totals and chart; the category details panel is rendered separately (renderDetails).
+// Current month name for the band labels, capitalised ("November", "Noviembre").
+function monthName() {
+  const name = new Intl.DateTimeFormat(getLang(), { month: 'long' }).format(new Date());
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+// Top band: Earned / Spent / Left for the current calendar month.
+function renderBand() {
+  const month = monthName();
+  statEarnedLabel.textContent = t('stats.earned', { month });
+  statSpentLabel.textContent = t('stats.spent', { month });
+  const { earnedCents, spentCents, leftCents } = monthSummary(costsCache, incomeCache, localISO(0));
+  statSpent.textContent = formatMoney(spentCents);
+  const known = incomeState === 'ok';
+  statEarned.textContent = known ? formatMoney(earnedCents) : '-';
+  statLeft.textContent = known ? formatSignedMoney(leftCents) : '-';
+  statLeft.dataset.sign = !known || leftCents === 0 ? 'zero' : leftCents > 0 ? 'positive' : 'negative';
+  statEarnedBtn.setAttribute('aria-pressed', String(incomeOpen));
+}
+
+// Dashboard totals and chart; the details panel is rendered separately (renderDetails).
 function renderCosts() {
-  // The expense being edited is gone (deleted here or elsewhere): leave edit mode, which re-renders.
-  if (editingId !== null && !costsCache.some((c) => c.id === editingId)) { stopEdit(); return; }
+  // The entry being edited is gone (deleted here or elsewhere): leave edit mode, which re-renders.
+  if (editingId !== null && !cacheOf(editingKind).some((c) => c.id === editingId)) { stopEdit(); return; }
 
-  const stats = computeStats(costsCache, localISO(0));
-  statToday.textContent = formatMoney(stats.todayCents);
-  statTotal.textContent = formatMoney(stats.allCents);
-  statMonth.textContent = formatMoney(stats.monthCents);
-
+  renderBand();
   renderChart();
   renderDetails();
 }
 
-// Details panel: the expenses of the selected category within the chart's period.
+// Details panel: the expenses of the selected category, or all income, within the chart's period.
 // With no selection the panel collapses but keeps its last content so it can animate out.
 function renderDetails({ stagger = false } = {}) {
-  const open = selectedCat !== null;
+  const open = selectedCat !== null || incomeOpen;
   historyPanel.classList.toggle('is-open', open);
   historyPanel.inert = !open;
+  statEarnedBtn.setAttribute('aria-pressed', String(incomeOpen));
   if (!open) return;
 
-  historyPanel.dataset.cat = selectedCat;
-  detailsIcon.innerHTML = catIcon(selectedCat);
-  detailsTitle.textContent = t('cat.' + selectedCat);
+  const kind = incomeOpen ? 'income' : 'expense';
+  const { label } = KINDS[kind];
+  historyPanel.dataset.cat = incomeOpen ? 'Income' : selectedCat;
+  detailsIcon.innerHTML = catIcon(incomeOpen ? 'Income' : selectedCat);
+  detailsTitle.textContent = incomeOpen ? t('income.title') : t('cat.' + selectedCat);
+  searchFilter.setAttribute('aria-label', t(incomeOpen ? 'income.searchAria' : 'history.searchAria'));
+
+  if (incomeOpen && incomeState !== 'ok') {
+    historySummary.classList.add('hidden');
+    exportCsvBtn.classList.add('hidden');
+    filteredCosts = [];
+    costList.innerHTML = incomeState === 'loading'
+      ? `<li class="empty-state">${t('income.loading')}</li>`
+      : `<li class="empty-state">${t('income.failed')} <button type="button" class="text-link link-btn" data-action="retry" data-kind="income">${t('history.retry')}</button></li>`;
+    return;
+  }
 
   // Amount bounds are typed in dollars; '' means no bound. Date bounds replace the chart's period.
   const toBound = (input) => (input.value === '' || !(Number(input.value) >= 0) ? null : Math.round(Number(input.value) * 100));
@@ -759,10 +878,12 @@ function renderDetails({ stagger = false } = {}) {
   detailsPeriod.textContent = customDates ? t('filter.custom') : t('chart.' + chartPeriod);
   filterClear.classList.toggle('hidden', !(searchFilter.value || minCents !== null || maxCents !== null || customDates));
 
-  const filtered = filterExpenses(customDates ? costsCache : periodItems(costsCache, chartPeriod, localISO(0)), {
+  const source = cacheOf(kind);
+  const filtered = filterExpenses(customDates ? source : periodItems(source, chartPeriod, localISO(0)), {
     search: searchFilter.value,
-    category: selectedCat,
-    labelOf: (c) => t('cat.' + c),
+    category: incomeOpen ? '' : selectedCat,
+    keyOf: (item) => item[KINDS[kind].field],
+    labelOf: label,
     minCents, maxCents, from, to
   });
   filteredCosts = filtered;
@@ -772,32 +893,22 @@ function renderDetails({ stagger = false } = {}) {
     historySummary.classList.add('hidden');
     // An impossible range is the likely reason for an empty list: say so rather than "not found".
     const key = minCents !== null && maxCents !== null && minCents > maxCents ? 'filter.invertedAmount'
-      : from && to && from > to ? 'filter.invertedDate' : 'history.none';
+      : from && to && from > to ? 'filter.invertedDate' : incomeOpen ? 'income.none' : 'history.none';
     costList.innerHTML = `<li class="empty-state">${t(key)}</li>`;
     return;
   }
 
   const shown = groupByDay(filtered).reduce((sum, d) => sum + d.subtotalCents, 0);
-  historySummary.textContent = t(filtered.length === 1 ? 'history.summaryOne' : 'history.summaryMany',
-    { n: filtered.length, total: formatMoney(shown) });
+  const summaryKey = incomeOpen
+    ? (filtered.length === 1 ? 'income.summaryOne' : 'income.summaryMany')
+    : (filtered.length === 1 ? 'history.summaryOne' : 'history.summaryMany');
+  historySummary.textContent = t(summaryKey, { n: filtered.length, total: formatMoney(shown) });
   historySummary.classList.remove('hidden');
 
   // Group by day (the query is already newest-first) with a subtotal per day.
   costList.innerHTML = groupByDay(filtered).map(({ date, items, subtotalCents }) => `
     <li class="day-head"><span>${dayLabel(date)}</span><span>${formatMoney(subtotalCents)}</span></li>
-    ${items.map(item => `
-    <li class="cost-item" data-cat="${escapeHtml(item.category)}"${item.id === editingId ? ' aria-current="true"' : ''}>
-      <div class="cost-details">
-        ${item.notes
-          ? `<div class="cost-note">${escapeHtml(item.notes)}</div>`
-          : `<div class="cost-note is-empty">${t('details.noNote')}</div>`}
-      </div>
-      <div class="cost-right">
-        <span class="cost-amount">${formatMoney(toCents(item.amount))}</span>
-        <button type="button" class="icon-btn" data-action="edit" data-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(t('history.editAria', { cat: t('cat.' + item.category), amount: formatMoney(toCents(item.amount)) }))}">${uiIcon('pencil')}</button>
-        <button type="button" class="icon-btn danger" data-action="delete" data-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(t('history.deleteAria', { cat: t('cat.' + item.category), amount: formatMoney(toCents(item.amount)) }))}">${uiIcon('trash')}</button>
-      </div>
-    </li>`).join('')}`).join('');
+    ${items.map(item => incomeOpen ? incomeRow(item) : expenseRow(item)).join('')}`).join('');
 
   // Staggered entrance, only when the panel opens or switches category (not on every keystroke).
   costList.classList.toggle('stagger', stagger);
@@ -807,20 +918,74 @@ function renderDetails({ stagger = false } = {}) {
   }
 }
 
+function rowActions(item, kind, ariaVars) {
+  const id = escapeHtml(item.id);
+  const prefix = kind === 'income' ? 'income' : 'history';
+  return `
+        <button type="button" class="icon-btn" data-action="edit" data-kind="${kind}" data-id="${id}" aria-label="${escapeHtml(t(prefix + '.editAria', ariaVars))}">${uiIcon('pencil')}</button>
+        <button type="button" class="icon-btn danger" data-action="delete" data-kind="${kind}" data-id="${id}" aria-label="${escapeHtml(t(prefix + '.deleteAria', ariaVars))}">${uiIcon('trash')}</button>`;
+}
+
+// An expense row sits inside its category's panel, so it shows only the note.
+function expenseRow(item) {
+  const amount = formatMoney(toCents(item.amount));
+  return `
+    <li class="cost-item" data-cat="${escapeHtml(item.category)}"${item.id === editingId ? ' aria-current="true"' : ''}>
+      <div class="cost-details">
+        ${item.notes
+          ? `<div class="cost-note">${escapeHtml(item.notes)}</div>`
+          : `<div class="cost-note is-empty">${t('details.noNote')}</div>`}
+      </div>
+      <div class="cost-right">
+        <span class="cost-amount">${amount}</span>${rowActions(item, 'expense', { cat: t('cat.' + item.category), amount })}
+      </div>
+    </li>`;
+}
+
+// The income list mixes Salary and Extra, so each row names its source; the amount carries a "+".
+function incomeRow(item) {
+  const amount = formatMoney(toCents(item.amount));
+  const src = KINDS.income.label(item.source);
+  return `
+    <li class="cost-item" data-cat="${escapeHtml(item.source)}"${item.id === editingId ? ' aria-current="true"' : ''}>
+      <div class="cost-details">
+        <div class="cost-cat">${catIcon(item.source)}<span>${escapeHtml(src)}</span></div>
+        ${item.notes ? `<div class="cost-notes">${escapeHtml(item.notes)}</div>` : ''}
+      </div>
+      <div class="cost-right">
+        <span class="cost-amount is-income">+${amount}</span>${rowActions(item, 'income', { src, amount })}
+      </div>
+    </li>`;
+}
+
 function clearFilters() {
   [searchFilter, filterMin, filterMax, filterFrom, filterTo].forEach((input) => { input.value = ''; });
 }
 
+function revealPanel() {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(() => historyPanel.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }), 320);
+}
+
 function selectCategory(value) {
   selectedCat = value === selectedCat ? null : value;
+  if (selectedCat) incomeOpen = false;
   clearFilters();
   syncChartSelection();
   renderDetails({ stagger: true });
-  if (selectedCat) {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setTimeout(() => historyPanel.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }), 320);
-  }
+  if (selectedCat) revealPanel();
 }
+
+// The Earned box opens the income list in the same panel; clicking it again closes it.
+function toggleIncome(open = !incomeOpen) {
+  incomeOpen = open;
+  if (open) selectedCat = null;
+  clearFilters();
+  syncChartSelection();
+  renderDetails({ stagger: true });
+  if (open) revealPanel();
+}
+statEarnedBtn.addEventListener('click', () => toggleIncome());
 
 // "Today", "Yesterday", otherwise a short local date such as "Sat, 7 Nov" (year added when not this year).
 function dayLabel(iso) {
@@ -909,12 +1074,17 @@ document.getElementById('chart-body').addEventListener('click', (e) => {
   selectCategory((target.closest('[data-cat]') || target).dataset.cat);
 });
 detailsClose.addEventListener('click', () => {
+  if (incomeOpen) {
+    toggleIncome(false);
+    statEarnedBtn.focus();
+    return;
+  }
   const value = selectedCat;
   selectCategory(value);
   document.querySelector(`#chart-body li[data-cat="${CSS.escape(value)}"] .legend-row`)?.focus();
 });
 historyPanel.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && selectedCat) { e.preventDefault(); detailsClose.click(); }
+  if (e.key === 'Escape' && (selectedCat || incomeOpen)) { e.preventDefault(); detailsClose.click(); }
 });
 
 [searchFilter, filterMin, filterMax, filterFrom, filterTo].forEach((input) => {

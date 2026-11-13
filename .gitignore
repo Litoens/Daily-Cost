@@ -3,3 +3,5 @@
 .impeccable/questions/
 .impeccable/review/
 .claude/
+# superpowers session state (brainstorm servers, review scratch)
+.superpowers/

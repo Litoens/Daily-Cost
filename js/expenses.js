@@ -10,16 +10,18 @@ export function escapeHtml(str) {
 
 // minCents / maxCents bound the amount and from / to (ISO dates) bound the date, all inclusive.
 // A null bound is ignored. They combine with the text search and the category.
+// keyOf picks the field that holds the category (income rows keep theirs in `source`).
 export function filterExpenses(items, { search = '', category = '', labelOf = (c) => c,
-  minCents = null, maxCents = null, from = '', to = '' } = {}) {
+  minCents = null, maxCents = null, from = '', to = '', keyOf = (item) => item.category } = {}) {
   const needle = search.toLowerCase();
   return items.filter((item) => {
+    const key = keyOf(item);
     const matchesSearch =
-      item.category.toLowerCase().includes(needle) ||
-      labelOf(item.category).toLowerCase().includes(needle) ||
+      key.toLowerCase().includes(needle) ||
+      labelOf(key).toLowerCase().includes(needle) ||
       (item.notes && item.notes.toLowerCase().includes(needle)) ||
       item.date.includes(needle);
-    if (!matchesSearch || (category !== '' && item.category !== category)) return false;
+    if (!matchesSearch || (category !== '' && key !== category)) return false;
     if (from && item.date < from) return false;
     if (to && item.date > to) return false;
     if (minCents !== null || maxCents !== null) {
@@ -104,16 +106,17 @@ function csvField(value) {
   return /["\r\n,]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-// CSV of the given expenses, with a UTF-8 BOM so spreadsheets read accents correctly.
+// CSV of the given rows, with a UTF-8 BOM so spreadsheets read accents correctly.
+// `column` is the category field: 'category' for expenses, 'source' for income.
 // Notes starting with = + - @ get a leading ' so a spreadsheet never runs them as a formula.
-export function toCsv(items) {
-  const lines = ['date,category,amount,notes'];
+export function toCsv(items, column = 'category') {
+  const lines = [`date,${column},amount,notes`];
   for (const item of items) {
     const notes = item.notes == null ? '' : String(item.notes);
     const safeNotes = /^[=+\-@]/.test(notes) ? `'${notes}` : notes;
     lines.push([
       csvField(item.date),
-      csvField(item.category),
+      csvField(item[column]),
       (toCents(item.amount) / 100).toFixed(2),
       csvField(safeNotes)
     ].join(','));
