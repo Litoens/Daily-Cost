@@ -16,3 +16,9 @@ export function formatMoney(cents) {
   });
   return `$${dollars}`;
 }
+
+// Explicit sign for a balance: +$1,137.60 / -$84.20; zero has no sign.
+export function formatSignedMoney(cents) {
+  if (cents === 0) return formatMoney(0);
+  return (cents > 0 ? '+' : '-') + formatMoney(Math.abs(cents));
+}

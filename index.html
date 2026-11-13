@@ -123,17 +123,18 @@
 
         <!-- Stats Summary -->
         <div id="stats-grid" class="stats-grid">
+          <button type="button" id="stat-earned-btn" class="stat-card stat-btn" aria-pressed="false" aria-controls="history-panel">
+            <span id="stat-earned-label" class="stat-label">Earned</span>
+            <span id="stat-earned" class="amount">-</span>
+            <span class="stat-more"><span data-i18n="stats.viewIncome">See income</span><span id="stat-more-icon" class="stat-more-ico"></span></span>
+          </button>
           <div class="stat-card">
-            <h2 data-i18n="stats.today">Today</h2>
-            <div id="stat-today" class="amount">$0.00</div>
+            <h2 id="stat-spent-label" class="stat-label">Spent</h2>
+            <div id="stat-spent" class="amount">$0.00</div>
           </div>
-          <div class="stat-card">
-            <h2 data-i18n="stats.month">This Month</h2>
-            <div id="stat-month" class="amount">$0.00</div>
-          </div>
-          <div class="stat-card stat-all">
-            <h2 data-i18n="stats.total">All time</h2>
-            <div id="stat-total" class="amount">$0.00</div>
+          <div class="stat-card stat-left">
+            <h2 class="stat-label" data-i18n="stats.left">Left</h2>
+            <div id="stat-left" class="amount">-</div>
           </div>
         </div>
       </div>
@@ -143,8 +144,12 @@
     <main id="expenses-view" class="wrap dashboard-grid">
       <!-- Add Cost Form -->
       <div class="card card-entry">
-        <h2 id="cost-form-title" data-i18n="form.title">Add Expense</h2>
         <form id="cost-form">
+          <div id="entry-kind" class="kind-switch" role="radiogroup" aria-label="Entry type" data-i18n-aria="form.kindAria">
+            <label class="kind-opt"><input type="radio" name="kind" value="expense" checked><span data-i18n="form.kindExpense">Expense</span></label>
+            <label class="kind-opt"><input type="radio" name="kind" value="income"><span data-i18n="form.kindIncome">Income</span></label>
+          </div>
+          <h2 id="cost-form-title" data-i18n="form.title">Add Expense</h2>
           <div class="form-group">
             <span id="cost-category-label" class="field-label" data-i18n="form.category">Category</span>
             <div id="cost-category" class="cat-picker" role="radiogroup" aria-labelledby="cost-category-label"></div>

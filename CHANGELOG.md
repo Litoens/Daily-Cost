@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Income tracking:** record your salary and extra payments. The add form has an **Expense / Income** switch (it opens in Expense mode); Income mode offers two sources, Salary and Extra income. Stored in a new `income` table with its own row-level security (run `migrations/2026-11-13-income.sql` on existing projects).
+- **Earned / Spent / Left** for the current month replace Today / This month / All time in the top band. Left is earned minus spent, shown with its sign in green or red.
+- **Income list:** click **Earned** to open your income in the details panel, with the same search, amount and date filters, edit, delete with Undo and CSV export (`daily-income-YYYY-MM-DD.csv`). The donut stays expenses only.
 - **Category buttons:** the category dropdown in the add-expense form is now six icon buttons (keyboard accessible, still required).
 - **Date shortcuts:** "Today" and "Yesterday" buttons next to the date field.
 - **Show/hide password** toggle on every password field.

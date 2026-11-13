@@ -34,7 +34,7 @@ The first checks JavaScript syntax, the second checks the HTML wiring and that b
 ### 1. Set Up Supabase (Database & Auth)
 1. Create a free account at [Supabase](https://supabase.com).
 2. Create a new project.
-3. Go to the **SQL Editor** in your Supabase dashboard and run the SQL script found in `schema.sql` to create the `costs` table and set up RLS security policies.
+3. Go to the **SQL Editor** in your Supabase dashboard and run the SQL script found in `schema.sql` to create the `costs` and `income` tables and set up RLS security policies.
    - Existing projects: also run the files in `migrations/` in date order. Each migration file starts with a comment describing a check to run first.
 4. Go to **Settings > API** in your Supabase dashboard and copy:
    - **Project URL**
