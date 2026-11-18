@@ -813,3 +813,6 @@ footer {
 /* ---------- History summary ---------- */
 .summary-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.25rem 0.75rem; margin-bottom: 0.5rem; }
 .history-summary { font-size: 0.875rem; font-weight: 700; }
+
+/* Link styled as a button (404 page). */
+a.btn { display: block; text-align: center; text-decoration: none; margin-top: 1.25rem; }

@@ -26,8 +26,15 @@ All notable changes to this project will be documented in this file.
 - **Chart periods:** Today and This week (Monday to Sunday) join This month and All time.
 - **Clear filters** and **Export CSV** are now icon buttons.
 - **Unit tests** for the money, date, validation and expense logic, run in CI (`node --test`).
+- **Works offline:** a service worker (`sw.js`) keeps a copy of the app so it opens without a connection. It is network-first and never caches Supabase data.
+- **App icons** in PNG (180, 192, 512 and maskable 512) for installing on phones, and a **404 page**.
+- **CI checks:** ESLint, a test coverage report, a size budget (`tests/budget.mjs`), and a browser smoke and accessibility test of the sign-in page (Playwright + axe, job `e2e`). After each deploy, a job checks the live site answers.
+- **Releases:** pushing a `v*` tag creates a GitHub Release with generated notes. Dependabot keeps the GitHub Actions up to date.
+- **Project docs:** MIT `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, PR and issue templates, and `docs/operations.md` (deploy, rollback, backup and restore, and how to add monitoring, error tracking and preview deploys).
 
 ### Changed
+- **supabase-js is now bundled in the repo** (`js/vendor/`, version 2.119.0, hash in `js/vendor/README.md`) instead of loaded from a CDN, and the CDN is removed from the Content Security Policy.
+- README: GitHub Pages deploys through GitHub Actions, not from a branch.
 - The amount field is focused again after saving, ready for the next expense.
 - The date field now defaults to the user's local today (it could show tomorrow in the evening before).
 - **Passwords** may now contain symbols. The rule stays 4 to 16 characters with at least one letter and one number; sign-in no longer checks the format.
