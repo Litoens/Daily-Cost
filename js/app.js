@@ -257,7 +257,7 @@ forgotForm.addEventListener('submit', async (e) => {
   }
 
   await withBusy(forgotForm, async () => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + window.location.pathname
     });
 
@@ -290,7 +290,7 @@ resetPasswordForm.addEventListener('submit', async (e) => {
   }
 
   await withBusy(resetPasswordForm, async () => {
-    const { data, error } = await supabase.auth.updateUser({
+    const { error } = await supabase.auth.updateUser({
       password: newPassword
     });
 
@@ -435,14 +435,14 @@ authForm.addEventListener('submit', async (e) => {
 
   await withBusy(authForm, async () => {
     if (isSignUpMode) {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         showMessage(authMessage, authErrorText(error), 'error');
       } else {
         showMessage(authMessage, t('auth.created'), 'success');
       }
     } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         showMessage(authMessage, authErrorText(error), 'error');
       }
@@ -1105,3 +1105,10 @@ onLangChange(() => {
 // Initialize on load
 applyTranslations();
 initSession();
+
+// Offline app shell (relative path so it works under /Daily-Cost/).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { scope: '.' }).catch((err) => console.warn('Service worker registration failed:', err));
+  });
+}

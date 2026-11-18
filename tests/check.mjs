@@ -1,5 +1,5 @@
 // Smoke checks for the static site: every element id that js/app.js looks up must exist in index.html.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const html = readFileSync('index.html', 'utf8');
 const js = readFileSync('js/app.js', 'utf8');
@@ -55,8 +55,8 @@ console.log(`OK: ${enKeys.length} i18n keys in en and es`);
 
 // Supply chain and CSP: the Supabase client is pinned to an exact version and the page carries a policy.
 const clientJs = readFileSync('js/supabaseClient.js', 'utf8');
-if (!/supabase-js@\d+\.\d+\.\d+\/\+esm/.test(clientJs)) {
-  console.error('js/supabaseClient.js must import a pinned supabase-js@X.Y.Z/+esm');
+if (!/from '\.\/vendor\/supabase-js-\d+\.\d+\.\d+\.js'/.test(clientJs)) {
+  console.error('js/supabaseClient.js must import the vendored, version-pinned supabase-js from ./vendor/');
   process.exit(1);
 }
 if (!html.includes('http-equiv="Content-Security-Policy"')) {
@@ -64,3 +64,17 @@ if (!html.includes('http-equiv="Content-Security-Policy"')) {
   process.exit(1);
 }
 console.log('OK: Supabase client pinned, Content Security Policy present');
+
+// Service worker: every shipped JS module and the vendored client are precached for offline use.
+const sw = readFileSync('sw.js', 'utf8');
+const shellFiles = [
+  ...readdirSync('js').filter((f) => f.endsWith('.js')).map((f) => `js/${f}`),
+  ...readdirSync('js/vendor').filter((f) => f.endsWith('.js')).map((f) => `js/vendor/${f}`),
+  'index.html', 'css/style.css'
+];
+const notCached = shellFiles.filter((f) => !sw.includes(`'${f}'`));
+if (notCached.length) {
+  console.error('sw.js SHELL is missing:', notCached.join(', '));
+  process.exit(1);
+}
+console.log(`OK: sw.js precaches all ${shellFiles.length} app shell files`);

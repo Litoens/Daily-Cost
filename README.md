@@ -1,5 +1,7 @@
 # Daily Cost Tracker
 
+[![CI/CD](https://github.com/Litoens/Daily-Cost/actions/workflows/ci.yml/badge.svg)](https://github.com/Litoens/Daily-Cost/actions/workflows/ci.yml)
+
 A secure, modern daily cost tracking web application powered by **Supabase** (PostgreSQL database + Authentication) and hosted for free on **GitHub Pages**.
 
 ---
@@ -17,15 +19,24 @@ A secure, modern daily cost tracking web application powered by **Supabase** (Po
 
 ## Tests
 
-There is no build step and no `package.json`; the tests use only Node's built-in test runner (Node 22 or newer). Run these from the project root, the same commands CI runs:
+There is no build step and no `package.json`. Unit tests use Node's built-in test runner (Node 22 or newer). Run these from the project root; CI runs the same checks:
 
 ```bash
 for f in js/*.js tests/*.mjs; do node --check "$f"; done
+npx --yes eslint@9 .
 node tests/check.mjs
-node --test tests/*.test.mjs
+node --test --experimental-test-coverage tests/*.test.mjs
+node tests/budget.mjs
 ```
 
-The first checks JavaScript syntax, the second checks the HTML wiring and that both languages have the same texts, the third runs the unit tests.
+- `node --check`: JavaScript syntax.
+- `eslint`: lint, with the flat config in the repo (run through npx).
+- `tests/check.mjs`: HTML wiring, and both languages have the same texts.
+- Unit tests, with a coverage report.
+- `tests/budget.mjs`: size budget for the site files.
+- Accessibility smoke test: Playwright + axe on the sign-in page (`tests/e2e/`). Runs in CI as the `e2e` job.
+
+After each deploy, CI also curls the live URL as a smoke test. Dependabot keeps the GitHub Actions versions up to date. Pushing a `v*` tag creates a GitHub Release.
 
 ---
 
@@ -45,11 +56,12 @@ The first checks JavaScript syntax, the second checks the HTML wiring and that b
    - Under **Redirect URLs**, add your allowed app URLs (e.g., `https://litoens.github.io/Daily-Cost/` and `http://localhost:8000/` or `http://localhost:3000/`). This ensures password reset email links redirect to your live app correctly.
 
 ### 2. Configure Your App
-Open `js/supabaseClient.js` and replace the placeholder values with your actual Supabase credentials:
+Open `js/supabaseClient.js` and replace the placeholder values with your actual Supabase credentials. The Supabase library itself is already included in `js/vendor/`, so there is nothing to install:
 ```javascript
 const SUPABASE_URL = 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 ```
+The anon key is public by design. Your data is protected by Row Level Security. Also allow your project URL in the `connect-src` of the Content-Security-Policy in `index.html`.
 
 ### 3. Test Locally
 You can test the app locally using any static file server, for example:
@@ -57,25 +69,22 @@ You can test the app locally using any static file server, for example:
 - **Node.js:** `npx serve`
 Then open `http://localhost:8000` in your browser.
 
-### 4. Push to GitHub & Deploy to GitHub Pages
-1. Initialize git and commit your changes:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit: Daily Cost Tracker with Supabase"
-   ```
-2. Create a new repository on GitHub.
-3. Push your code to GitHub:
-   ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-   git branch -M main
-   git push -u origin main
-   ```
-4. Enable GitHub Pages:
-   - Go to your GitHub repository **Settings > Pages**.
-   - Under **Build and deployment**, select `Deploy from a branch`.
-   - Choose branch `main` and folder `/ (root)`, then click **Save**.
-5. Your application will be live at `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`!
+### 4. Deploy to GitHub Pages
+1. Push your code to a GitHub repository.
+2. Enable GitHub Pages: go to **Settings > Pages** and set **Source** to **GitHub Actions**. Do not use "Deploy from a branch".
+3. The workflow in `.github/workflows/ci.yml` deploys on every push to `main`, after the checks pass. Pull requests run the checks but do not deploy.
+4. Your application will be live at `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`.
+
+`main` is meant to be protected: changes go in through a pull request and the `check` status must pass. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## More
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): branch and pull request flow, running checks, migrations, releases.
+- [SECURITY.md](SECURITY.md): how to report a vulnerability.
+- [docs/operations.md](docs/operations.md): deploy, rollback, backups and restore.
+- [LICENSE](LICENSE): MIT.
 
 ---
 
